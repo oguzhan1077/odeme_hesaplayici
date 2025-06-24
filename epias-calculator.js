@@ -436,16 +436,17 @@ function downloadPDF() {
         return;
     }
     
-    // PDF oluştur
+    // PDF oluştur - Unicode desteği ile
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('p', 'mm', 'a4');
+    const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+    });
     
-    // Türkçe font desteği için
-    doc.setLanguage('tr');
-    
-    // Başlık
+    // Başlık - ASCII karakterler kullan
     doc.setFontSize(16);
-    doc.text('EPİAŞ Ödeme Günü Takvimi', 105, 20, { align: 'center' });
+    doc.text('EPIAS Odeme Tarihi Takvimi', 105, 20, { align: 'center' });
     
     // Tarih bilgisi
     const yearSelect = document.getElementById('yearSelect');
@@ -455,14 +456,14 @@ function downloadPDF() {
     
     let periodText = selectedYear;
     if (selectedMonth !== 'all') {
-        const monthNames = ['', 'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 
-                           'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+        const monthNames = ['', 'Ocak', 'Subat', 'Mart', 'Nisan', 'Mayis', 'Haziran', 
+                           'Temmuz', 'Agustos', 'Eylul', 'Ekim', 'Kasim', 'Aralik'];
         periodText += ` - ${monthNames[parseInt(selectedMonth)]}`;
     }
     
     doc.setFontSize(12);
-    doc.text(`Dönem: ${periodText}`, 105, 30, { align: 'center' });
-    doc.text(`Oluşturulma Tarihi: ${new Date().toLocaleDateString('tr-TR')}`, 105, 37, { align: 'center' });
+    doc.text(`Donem: ${periodText}`, 105, 30, { align: 'center' });
+    doc.text(`Olusturulma Tarihi: ${new Date().toLocaleDateString('tr-TR')}`, 105, 37, { align: 'center' });
     
     // Mevcut ödeme verilerini kullan
     const paymentData = generatePaymentData(selectedYear, selectedMonth);
@@ -470,18 +471,18 @@ function downloadPDF() {
     
     paymentData.forEach(row => {
         const tradeDate = formatDateToTurkish(row.tradeDate);
-        const tradeDayName = row.tradeDate.toLocaleDateString('tr-TR', { weekday: 'long' });
+        const tradeDayName = convertTurkishDay(row.tradeDate.toLocaleDateString('tr-TR', { weekday: 'long' }));
         const paymentDate = formatDateToTurkish(row.paymentDate);
-        const paymentDayName = row.paymentDate.toLocaleDateString('tr-TR', { weekday: 'long' });
+        const paymentDayName = convertTurkishDay(row.paymentDate.toLocaleDateString('tr-TR', { weekday: 'long' }));
         
-        // Durum bilgisi
+        // Durum bilgisi - ASCII karakterler
         let status = '';
         if (isHoliday(row.tradeDate)) {
             status = 'Tatil';
         } else if (isWeekend(row.tradeDate)) {
             status = 'Hafta Sonu';
         } else {
-            status = 'İş Günü';
+            status = 'Is Gunu';
         }
         
         tableData.push([
@@ -491,20 +492,22 @@ function downloadPDF() {
         ]);
     });
     
-    // Tabloyu PDF'e ekle
+    // Tabloyu PDF'e ekle - Türkçe karakter sorununu önlemek için
     doc.autoTable({
-        head: [['İşlem Tarihi', 'Ödeme Tarihi', 'Durum']],
+        head: [['Islem Tarihi', 'Odeme Tarihi', 'Durum']],
         body: tableData,
         startY: 45,
         styles: {
             fontSize: 8,
             cellPadding: 3,
+            font: 'helvetica' // Standart font kullan
         },
         headStyles: {
             fillColor: [102, 126, 234],
             textColor: 255,
             fontStyle: 'bold',
-            fontSize: 9
+            fontSize: 9,
+            font: 'helvetica'
         },
         alternateRowStyles: {
             fillColor: [245, 245, 245]
@@ -519,6 +522,20 @@ function downloadPDF() {
     // Dosya adını oluştur ve indir
     const fileName = generateFileName('pdf');
     doc.save(fileName);
+}
+
+// Türkçe gün isimlerini ASCII'ye çeviren yardımcı fonksiyon
+function convertTurkishDay(dayName) {
+    const dayMap = {
+        'Pazartesi': 'Pazartesi',
+        'Salı': 'Sali',
+        'Çarşamba': 'Carsamba',
+        'Perşembe': 'Persembe',
+        'Cuma': 'Cuma',
+        'Cumartesi': 'Cumartesi',
+        'Pazar': 'Pazar'
+    };
+    return dayMap[dayName] || dayName;
 }
 
 // Dosya adı oluşturucu fonksiyon
