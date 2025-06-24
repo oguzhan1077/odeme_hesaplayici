@@ -560,6 +560,12 @@ function generateFileName(extension) {
 function loadHolidayList() {
     const holidayListElement = document.getElementById('holidayList');
     
+    // Element yoksa fonksiyonu sonlandır
+    if (!holidayListElement) {
+        console.log('holidayList elementi bulunamadı, tatil listesi yüklenmedi.');
+        return;
+    }
+    
     // Tatilleri tarihe göre sırala
     const sortedHolidays = Object.entries(turkeyHolidays)
         .sort(([a], [b]) => new Date(a) - new Date(b));
@@ -608,7 +614,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Mevcut ay ve yılı varsayılan olarak seç
     setCurrentMonthAndYear();
     
-    // Tatil listesini yükle
+    // Tatil listesini yükle (güvenli kontrol ile)
     loadHolidayList();
     
     // Faiz türü değişikliği dinleyicisini başlat
