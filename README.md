@@ -1,116 +1,105 @@
-# EPİAŞ Ödeme Günü Hesaplayıcısı
+# EPİAŞ Ödeme Tarihi Hesaplayıcısı
 
-Modern, kullanıcı dostu EPİAŞ (Enerji Piyasaları İşletme A.Ş.) ödeme günü hesaplama aracı. T+2 iş günü kuralına göre ödeme tarihi hesaplar.
+Modern ve kullanıcı dostu EPİAŞ (Enerji Piyasaları İşletme A.Ş.) ödeme tarihi hesaplama web uygulaması. T+2 iş günü kuralına göre ödeme tarihlerini hesaplar ve faiz analizi yapar.
 
-## 🚀 Özellikler
+## 🎯 Temel Özellikler
 
-- **T+2 İş Günü Hesaplama**: Türkiye resmi tatillerini ve hafta sonlarını göz önünde bulundurarak ödeme tarihi hesaplar
-- **Türkiye Tatil Takvimi**: 2025-2027 yılları için güncel resmi tatiller ve bayram arifesi günleri
-- **Modern UI**: Bootstrap 5 ile responsive ve kullanıcı dostu arayüz
-- **Hızlı ve Güvenilir**: Tamamen frontend tabanlı, sunucu gerektirmez
+### 📅 Ödeme Tarihi Hesaplama
+- **T+2 İş Günü Kuralı**: Türkiye resmi tatillerini ve hafta sonlarını göz önünde bulunduran hassas hesaplama
+- **Hızlı Hesaplama**: Tek tarih için anlık ödeme tarihi hesaplama
+- **Dönem Analizi**: Aylık veya yıllık dönemler için toplu hesaplama ve tablo görünümü
 
-## 📋 Desteklenen Tatiller
+### 💰 Faiz Hesaplama
+- **Vade Faizi Analizi**: Erken/geç ödeme durumlarında faiz hesaplama
+- **Aylık ve Yıllık Faiz**: Farklı faiz türleri ile hesaplama desteği
+- **Ortalama Vade Analizi**: Dönem bazında ortalama vade farkı hesaplama
 
-### Resmi Tatiller
-- Yılbaşı (1 Ocak)
-- Ulusal Egemenlik ve Çocuk Bayramı (23 Nisan)
-- Emek ve Dayanışma Günü (1 Mayıs)
-- Atatürk'ü Anma, Gençlik ve Spor Bayramı (19 Mayıs)
-- Zafer Bayramı (30 Ağustos)
-- Cumhuriyet Bayramı (29 Ekim)
+### 📊 Raporlama ve İndirme
+- **Çoklu Format**: CSV, Excel (.xlsx) ve PDF formatlarında indirme
+- **İstatistik Dashboard**: İş günü, hafta sonu ve tatil günü analizleri
+- **Modern Tablolar**: Detaylı ödeme takvimi görünümü
 
-### Dini Bayramlar
-- Ramazan Bayramı (3 gün) + Arife
-- Kurban Bayramı (4 gün) + Arife
+## 🗓️ Tatil Takvimi Desteği
 
-## 🛠️ Teknolojiler
+### Resmi Tatiller (2025-2028)
+- ✅ **Ulusal Bayramlar**: 23 Nisan, 19 Mayıs, 30 Ağustos, 29 Ekim
+- ✅ **Resmi Günler**: Yılbaşı, 1 Mayıs, 15 Temmuz Demokrasi Günü
+- ✅ **Dini Bayramlar**: Ramazan ve Kurban Bayramları (arife günleri dahil)
+- ✅ **Güncel Veriler**: 2025-2028 yılları için tam tatil takvimi
 
-- **Frontend**: HTML5, CSS3, JavaScript (Vanilla)
-- **UI Framework**: Bootstrap 5
-- **Icons**: Font Awesome 6
-- **Deployment**: Netlify
+### Akıllı Hesaplama
+- Bayram arife günlerini otomatik tanıma
+- Hafta sonu ile çakışan tatilleri doğru işleme
+- Resmi tatil günlerinde iş günü hesaplamayı atlama
 
-## 📦 Kurulum ve Çalıştırma
+## 🎨 Kullanıcı Deneyimi
 
-### Yerel Geliştirme
-```bash
-# Repo'yu klonlayın
-git clone [repository-url]
-cd epias-calculator
+### Modern Arayüz
+- **Karanlık Tema**: Göz yormayan modern tasarım
+- **Responsive Design**: Mobil, tablet ve masaüstü uyumlu
+- **Gradient Tasarım**: Şık renk geçişleri ve modern kartlar
+- **Animasyonlar**: Yumuşak geçişler ve hover efektleri
 
-# Basit HTTP sunucusu ile çalıştırın
-python -m http.server 8000
-# veya
-npx serve .
+### İki Ana Sekme
+1. **Ödeme Takvimi**: Tarih hesaplama ve tablo görünümü
+2. **Faiz Hesaplama**: Vade faizi analizi ve hesaplama
 
-# Tarayıcıda açın: http://localhost:8000
-```
+### Akıllı Özellikler
+- Otomatik mevcut ay seçimi
+- Gerçek zamanlı hesaplama
+- Hata kontrolü ve kullanıcı uyarıları
+- Klavye kısayolları (Enter ile hesaplama)
 
-### Netlify ile Deploy
+## 🔧 Teknik Özellikler
 
-1. **Manuel Deploy**:
-   - [Netlify](https://netlify.com) hesabınıza giriş yapın
-   - "New site from Git" seçeneğini tıklayın
-   - Repository'yi bağlayın
-   - Otomatik deploy başlayacaktır
+### Frontend Teknolojileri
+- **Vanilla JavaScript**: Hızlı ve bağımsız çalışma
+- **Bootstrap 5**: Modern UI framework
+- **Font Awesome 6**: Zengin ikon kütüphanesi
+- **CSS3**: Gradient ve animasyon desteği
 
-2. **Drag & Drop Deploy**:
-   - Tüm dosyaları seçip Netlify dashboard'una sürükleyip bırakın
-   - Deploy otomatik olarak başlayacaktır
+### Harici Kütüphaneler
+- **XLSX.js**: Excel dosyası oluşturma
+- **jsPDF**: PDF rapor oluşturma
+- **jsPDF AutoTable**: PDF tablo formatı
 
-3. **Netlify CLI**:
-   ```bash
-   npm install -g netlify-cli
-   netlify login
-   netlify deploy --prod
-   ```
+### Performans
+- **Tamamen Frontend**: Sunucu gerektirmez
+- **Hızlı Yükleme**: Optimize edilmiş kod yapısı
+- **Offline Çalışma**: İnternet bağlantısı olmadan kullanım
+- **Hafif Dosya Boyutu**: Minimal kaynak kullanımı
 
-## 📁 Proje Yapısı
+## 📱 Desteklenen Platformlar
 
-```
-epias-calculator/
-├── index.html          # Ana HTML dosyası
-├── epias-calculator.js  # JavaScript mantığı
-├── netlify.toml        # Netlify konfigürasyonu
-├── README.md           # Dokümantasyon
-└── odeme_gunu.py      # Orijinal Python kodu (referans)
-```
+- ✅ **Masaüstü**: Windows, macOS, Linux
+- ✅ **Mobil**: iOS Safari, Android Chrome
+- ✅ **Tablet**: iPad, Android Tablet
+- ✅ **Tarayıcılar**: Chrome, Firefox, Safari, Edge
 
-## 🔧 Konfigürasyon
+## 🎯 Kullanım Senaryoları
 
-### Tatil Günlerini Güncelleme
-`epias-calculator.js` dosyasındaki `turkeyHolidays` objesini düzenleyerek yeni tatil günleri ekleyebilirsiniz:
+### Enerji Piyasası Profesyonelleri
+- Günlük ödeme tarihi hesaplamaları
+- Aylık cash flow planlaması
+- Faiz maliyet analizi
 
-```javascript
-const turkeyHolidays = {
-    '2025-01-01': 'Yılbaşı',
-    '2025-03-30': 'Ramazan Bayramı (1. Gün)',
-    // Yeni tatilleri buraya ekleyin...
-};
-```
+### Finans Departmanları
+- Vade faizi hesaplamaları
+- Erken ödeme avantaj analizi
+- Dönemsel maliyet raporları
 
-## 🎯 Kullanım
+### Muhasebe Birimleri
+- Ödeme takvimi oluşturma
+- Excel raporları hazırlama
+- Tatil günü planlaması
 
-1. İşlem tarihini seçin
-2. "Ödeme Gününü Hesapla" butonuna tıklayın
-3. T+2 iş günü sonrasındaki ödeme tarihi görüntülenecektir
+## 🚀 Hızlı Başlangıç
 
-## 🤝 Katkıda Bulunma
-
-1. Fork yapın
-2. Feature branch oluşturun (`git checkout -b feature/amazing-feature`)
-3. Değişikliklerinizi commit edin (`git commit -m 'Add amazing feature'`)
-4. Branch'inizi push edin (`git push origin feature/amazing-feature`)
-5. Pull Request açın
-
-## 📄 Lisans
-
-Bu proje MIT lisansı altında lisanslanmıştır.
-
-## 📞 İletişim
-
-Sorularınız için issue açabilir veya pull request gönderebilirsiniz.
+1. **Hızlı Hesaplama**: Bugünün tarihini seçin ve "Hesapla" butonuna tıklayın
+2. **Dönem Analizi**: Yıl ve ay seçip "Takvim Oluştur" ile aylık analiz yapın
+3. **Faiz Hesaplama**: İkinci sekmeye geçip faiz oranınızı girin
+4. **Rapor İndirme**: Sonuçları CSV, Excel veya PDF olarak indirin
 
 ---
 
-⚡ **EPİAŞ Ödeme Günü Hesaplayıcısı** - Türkiye enerji piyasaları için güvenilir ödeme tarihi hesaplama aracı 
+⚡ **EPİAŞ Ödeme Tarihi Hesaplayıcısı** - Türkiye enerji piyasaları için en kapsamlı ödeme tarihi ve faiz hesaplama aracı 
