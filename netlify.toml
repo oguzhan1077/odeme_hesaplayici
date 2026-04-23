@@ -5,6 +5,11 @@
 [build.environment]
   NODE_VERSION = "18"
 
+[[redirects]]
+  from = "/api/ptf"
+  to = "/.netlify/functions/ptf"
+  status = 200
+
 [[headers]]
   for = "/*"
   [headers.values]

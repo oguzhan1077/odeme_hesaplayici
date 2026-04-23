@@ -45,7 +45,9 @@ exports.handler = async (event) => {
     const requestOrigin = event.headers['origin'] || event.headers['Origin'] || '';
     const allowedOrigins = getAllowedOrigins();
 
-    if (!requestOrigin || !allowedOrigins.includes(requestOrigin)) {
+    // Origin yoksa same-origin browser isteği veya sunucu isteğidir — izin ver.
+    // Origin varsa ve listede değilse reddet.
+    if (requestOrigin && !allowedOrigins.includes(requestOrigin)) {
         return {
             statusCode: 403,
             headers: { 'Content-Type': 'application/json' },

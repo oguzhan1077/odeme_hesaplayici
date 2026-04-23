@@ -524,8 +524,10 @@ async function handleIaCalculate() {
                 endDate: maxDate.toISOString()
             })
         }).then(async res => {
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'PTF verisi alınamadı.');
+            const text = await res.text();
+            let data = {};
+            try { data = JSON.parse(text); } catch { /* boş veya HTML yanıt */ }
+            if (!res.ok) throw new Error(data.error || `Sunucu hatası (${res.status})`);
             return data.prices;
         });
 
