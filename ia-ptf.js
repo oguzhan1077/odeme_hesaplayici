@@ -42,10 +42,19 @@ function parseExcelDate(value) {
     }
 
     if (typeof value === 'string') {
-        const m = value.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})\s+(\d{1,2}):(\d{2})/);
-        if (m) {
-            const [, d, mo, y, h, mi] = m;
+        // DD.MM.YYYY HH:mm
+        const m1 = value.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})\s+(\d{1,2}):(\d{2})/);
+        if (m1) {
+            const [, d, mo, y, h, mi] = m1;
             return new Date(`${y}-${mo.padStart(2,'0')}-${d.padStart(2,'0')}T${h.padStart(2,'0')}:${mi}:00+03:00`);
+        }
+
+        // M/D/YY veya M/D/YYYY HH:mm (Excel kısa tarih formatı)
+        const m2 = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})(?:\s+(\d{1,2}):(\d{2}))?/);
+        if (m2) {
+            const [, mo, d, y, h = '0', mi = '00'] = m2;
+            const fullYear = y.length === 2 ? (parseInt(y) >= 50 ? '19' + y : '20' + y) : y;
+            return new Date(`${fullYear}-${mo.padStart(2,'0')}-${d.padStart(2,'0')}T${h.padStart(2,'0')}:${mi.padStart(2,'0')}:00+03:00`);
         }
     }
 
@@ -90,7 +99,7 @@ function parseAndValidateExcel(file) {
                 });
 
                 const sheet = wb.Sheets[wb.SheetNames[0]];
-                const rawRows = XLSX.utils.sheet_to_json(sheet, { defval: null, raw: false });
+                const rawRows = XLSX.utils.sheet_to_json(sheet, { defval: null, raw: true });
 
                 if (rawRows.length === 0) {
                     return reject('Excel dosyası boş.');
