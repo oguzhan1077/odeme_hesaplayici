@@ -364,6 +364,14 @@ function renderSummaryTable(summary) {
 
 // -------- Excel Export --------
 
+// Excel/LibreOffice'in =, +, -, @, tab, CR ile başlayan hücreleri
+// formül olarak yorumlamasını önlemek için öne ' ekler.
+function sanitizeForExcel(value) {
+    if (typeof value !== 'string') return value;
+    if (/^[=+\-@\t\r]/.test(value)) return "'" + value;
+    return value;
+}
+
 function downloadIaPtfExcel() {
     const { detail, summary } = iaPtfState.results;
     if (!detail.length) return;
@@ -374,7 +382,7 @@ function downloadIaPtfExcel() {
         ['Tarih', 'Satıcı Organizasyon', 'İA Miktar (MWh)', 'PTF (TL/MWh)', 'Anlaşma %', 'Birim Fiyat (TL/MWh)', 'Tutar (TL)', 'Durum'],
         ...detail.map(r => [
             r.tarih.toLocaleString('tr-TR'),
-            r.satici,
+            sanitizeForExcel(r.satici),
             r.miktar,
             r.matched ? r.ptf : null,
             r.matched ? r.rate : null,
@@ -386,7 +394,7 @@ function downloadIaPtfExcel() {
 
     const summaryData = [
         ['Satıcı Organizasyon', 'Toplam MWh', 'Ağırlıklı Ort. PTF (TL/MWh)', 'Anlaşma %', 'Toplam TL'],
-        ...summary.map(r => [r.satici, r.totalMWh, r.avgPtf, r.rate, r.totalTL])
+        ...summary.map(r => [sanitizeForExcel(r.satici), r.totalMWh, r.avgPtf, r.rate, r.totalTL])
     ];
 
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(detailData), 'Detay');
