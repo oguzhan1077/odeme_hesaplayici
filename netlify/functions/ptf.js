@@ -1,3 +1,4 @@
+// Best-effort only: in-memory state, not shared across Lambda instances
 const rateStore = new Map(); // IP -> { count, resetAt }
 
 function checkRateLimit(ip) {
@@ -12,53 +13,81 @@ function checkRateLimit(ip) {
     return true;
 }
 
-function jsonResponse(statusCode, body, extraHeaders = {}) {
-    const allowedOrigin = process.env.URL || 'http://localhost:8888';
+function getAllowedOrigins() {
+    return [
+        process.env.URL,
+        process.env.DEPLOY_URL,
+        'http://localhost:8888'
+    ].filter(Boolean);
+}
+
+function corsHeaders(requestOrigin) {
+    return {
+        'Access-Control-Allow-Origin': requestOrigin,
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Vary': 'Origin'
+    };
+}
+
+function jsonResponse(statusCode, body, requestOrigin) {
     return {
         statusCode,
         headers: {
             'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': allowedOrigin,
-            'Access-Control-Allow-Methods': 'POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type',
-            ...extraHeaders
+            ...corsHeaders(requestOrigin)
         },
         body: JSON.stringify(body)
     };
 }
 
 exports.handler = async (event) => {
+    const requestOrigin = event.headers['origin'] || event.headers['Origin'] || '';
+    const allowedOrigins = getAllowedOrigins();
+
+    if (!requestOrigin || !allowedOrigins.includes(requestOrigin)) {
+        return {
+            statusCode: 403,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ error: 'Forbidden' })
+        };
+    }
+
     if (event.httpMethod === 'OPTIONS') {
-        return jsonResponse(204, '');
+        return {
+            statusCode: 204,
+            headers: corsHeaders(requestOrigin),
+            body: ''
+        };
     }
 
     if (event.httpMethod !== 'POST') {
-        return jsonResponse(405, { error: 'Method not allowed' });
+        return jsonResponse(405, { error: 'Method not allowed' }, requestOrigin);
     }
 
     const ip = (event.headers['x-forwarded-for'] || 'unknown').split(',')[0].trim();
     if (!checkRateLimit(ip)) {
-        return jsonResponse(429, { error: 'Çok fazla istek. Lütfen bir dakika bekleyin.' });
+        return jsonResponse(429, { error: 'Çok fazla istek. Lütfen bir dakika bekleyin.' }, requestOrigin);
     }
 
     let body;
     try {
         body = JSON.parse(event.body);
     } catch {
-        return jsonResponse(400, { error: 'Geçersiz istek formatı.' });
+        return jsonResponse(400, { error: 'Geçersiz istek formatı.' }, requestOrigin);
     }
 
     const { username, password, startDate, endDate } = body;
 
     if (!username || !password || !startDate || !endDate) {
-        return jsonResponse(400, { error: 'Eksik parametre: username, password, startDate, endDate gereklidir.' });
+        return jsonResponse(400, { error: 'Eksik parametre: username, password, startDate, endDate gereklidir.' }, requestOrigin);
     }
 
     const start = new Date(startDate);
     const end = new Date(endDate);
     const diffDays = (end - start) / (1000 * 60 * 60 * 24);
     if (diffDays > 90) {
-        return jsonResponse(400, { error: 'Maksimum 90 gün sorgulanabilir.' });
+        return jsonResponse(400, { error: 'Maksimum 90 gün sorgulanabilir.' }, requestOrigin);
     }
 
     let tgtValue;
@@ -71,7 +100,7 @@ exports.handler = async (event) => {
         });
 
         if (tgtRes.status === 401 || tgtRes.status === 403) {
-            return jsonResponse(401, { error: 'EPİAŞ giriş bilgileri hatalı.' });
+            return jsonResponse(401, { error: 'EPİAŞ giriş bilgileri hatalı.' }, requestOrigin);
         }
         if (!tgtRes.ok) {
             throw new Error(`TGT isteği başarısız: ${tgtRes.status}`);
@@ -87,10 +116,10 @@ exports.handler = async (event) => {
         tgtValue = tgtMatch[0];
     } catch (err) {
         if (err.name === 'TimeoutError' || err.name === 'AbortError') {
-            return jsonResponse(504, { error: 'EPİAŞ servisi yanıt vermiyor, tekrar deneyin.' });
+            return jsonResponse(504, { error: 'EPİAŞ servisi yanıt vermiyor, tekrar deneyin.' }, requestOrigin);
         }
         console.error('TGT error:', err.message);
-        return jsonResponse(502, { error: 'EPİAŞ giriş servisi hatası.' });
+        return jsonResponse(502, { error: 'EPİAŞ giriş servisi hatası.' }, requestOrigin);
     }
 
     try {
@@ -114,12 +143,12 @@ exports.handler = async (event) => {
             price: item.price
         }));
 
-        return jsonResponse(200, { prices });
+        return jsonResponse(200, { prices }, requestOrigin);
     } catch (err) {
         if (err.name === 'TimeoutError' || err.name === 'AbortError') {
-            return jsonResponse(504, { error: 'EPİAŞ servisi yanıt vermiyor, tekrar deneyin.' });
+            return jsonResponse(504, { error: 'EPİAŞ servisi yanıt vermiyor, tekrar deneyin.' }, requestOrigin);
         }
         console.error('PTF error:', err.message);
-        return jsonResponse(502, { error: 'PTF verisi alınamadı.' });
+        return jsonResponse(502, { error: 'PTF verisi alınamadı.' }, requestOrigin);
     }
 };
