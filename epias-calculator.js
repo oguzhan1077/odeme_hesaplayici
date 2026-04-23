@@ -57,12 +57,7 @@ const turkeyHolidays = {
     '2027-08-30': 'Zafer Bayramı',
     '2027-10-28': 'Cumhuriyet Bayramı Arifesi',
     '2027-10-29': 'Cumhuriyet Bayramı',
-    '2027-12-31': 'Yılbaşı Gecesi',
-    
-    // Bayram arifesi günleri (2027)
-    '2027-03-08': 'Ramazan Bayramı Arifesi',
-    '2027-05-15': 'Kurban Bayramı Arifesi',
-    
+
     // 2028 yılı
     '2028-01-01': 'Yılbaşı',
     '2028-02-26': 'Ramazan Bayramı Arifesi',
@@ -80,8 +75,7 @@ const turkeyHolidays = {
     '2028-07-15': 'Demokrasi ve Millî Birlik Günü',
     '2028-08-30': 'Zafer Bayramı',
     '2028-10-28': 'Cumhuriyet Bayramı Arifesi',
-    '2028-10-29': 'Cumhuriyet Bayramı',
-    '2028-12-31': 'Yılbaşı Gecesi'
+    '2028-10-29': 'Cumhuriyet Bayramı'
 };
 
 // Tarih formatını YYYY-MM-DD şeklinde döndüren yardımcı fonksiyon
@@ -149,7 +143,8 @@ function calculateQuickPayment() {
         return;
     }
     
-    const tradeDate = new Date(quickDateInput.value);
+    const [qy, qm, qd] = quickDateInput.value.split('-').map(Number);
+    const tradeDate = new Date(qy, qm - 1, qd);
     const paymentDate = calculateEpiasPaymentDate(tradeDate);
     
     // Sonuçları göster
@@ -197,7 +192,7 @@ function generatePaymentCalendar() {
         
         // Tabloya kaydır
         tableContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 800);
+    }, 50);
 }
 
 // Ödeme verilerini oluştur
@@ -451,7 +446,7 @@ function downloadPDF() {
     // Tarih bilgisi
     const yearSelect = document.getElementById('yearSelect');
     const monthSelect = document.getElementById('monthSelect');
-    const selectedYear = yearSelect.value;
+    const selectedYear = parseInt(yearSelect.value);
     const selectedMonth = monthSelect.value;
     
     let periodText = selectedYear;
@@ -556,54 +551,6 @@ function generateFileName(extension) {
     return fileName;
 }
 
-// Tatil listesini yükleyen fonksiyon
-function loadHolidayList() {
-    const holidayListElement = document.getElementById('holidayList');
-    
-    // Element yoksa fonksiyonu sonlandır
-    if (!holidayListElement) {
-        console.log('holidayList elementi bulunamadı, tatil listesi yüklenmedi.');
-        return;
-    }
-    
-    // Tatilleri tarihe göre sırala
-    const sortedHolidays = Object.entries(turkeyHolidays)
-        .sort(([a], [b]) => new Date(a) - new Date(b));
-    
-    let currentYear = null;
-    let holidayHTML = '';
-    
-    sortedHolidays.forEach(([date, name]) => {
-        const holidayDate = new Date(date);
-        const year = holidayDate.getFullYear();
-        
-        // Yıl değiştiğinde başlık ekle
-        if (currentYear !== year) {
-            if (currentYear !== null) {
-                holidayHTML += '<hr>';
-            }
-            holidayHTML += `<h6 class="text-primary mb-3 mt-2">${year}</h6>`;
-            currentYear = year;
-        }
-        
-        const formattedDate = holidayDate.toLocaleDateString('tr-TR', {
-            day: 'numeric',
-            month: 'long'
-        });
-        
-        holidayHTML += `
-            <div class="holiday-item">
-                <div class="d-flex justify-content-between align-items-center">
-                    <span class="fw-bold">${name}</span>
-                    <small class="text-muted">${formattedDate}</small>
-                </div>
-            </div>
-        `;
-    });
-    
-    holidayListElement.innerHTML = holidayHTML;
-}
-
 // Sayfa yüklendiğinde çalışacak fonksiyonlar
 document.addEventListener('DOMContentLoaded', function() {
     // Bugünün tarihini varsayılan olarak ayarla
@@ -613,9 +560,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Mevcut ay ve yılı varsayılan olarak seç
     setCurrentMonthAndYear();
-    
-    // Tatil listesini yükle (güvenli kontrol ile)
-    loadHolidayList();
     
     // Faiz türü değişikliği dinleyicisini başlat
     setupInterestTypeListener();
@@ -713,7 +657,8 @@ function calculateInterest() {
         return;
     }
     
-    const actualPaymentDate = new Date(paymentDateInput.value);
+    const [py, pm, pd] = paymentDateInput.value.split('-').map(Number);
+    const actualPaymentDate = new Date(py, pm - 1, pd);
     const inputRate = parseFloat(interestRateInput.value);
     const selectedYear = parseInt(yearSelect.value);
     const selectedMonth = monthSelect.value;
@@ -740,8 +685,11 @@ function calculateInterest() {
     let conversionInfo = '';
     
     if (interestType === 'monthly') {
-        // Aylık faizden yıllık faize dönüştür
-        // Formül: (Aylık Faiz × 360 / Vade Gün Sayısı) 
+        if (Math.abs(averageDays) === 0) {
+            alert('Ortalama vade gün sayısı sıfır olduğu için hesaplama yapılamıyor.');
+            return;
+        }
+        // Formül: (Aylık Faiz × 360 / Vade Gün Sayısı)
         annualRate = (inputRate * 360 / Math.abs(averageDays));
         conversionInfo = `Aylık %${inputRate} → Yıllık %${annualRate.toFixed(2)}`;
         
