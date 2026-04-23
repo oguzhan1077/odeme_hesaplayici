@@ -482,10 +482,10 @@ async function handleIaCalculate() {
         }
     }
 
-    // Date range
+    // Date range — reduce kullanılıyor, spread büyük dizilerde stack overflow yaratır
     const timestamps = iaPtfState.rows.map(r => r.tarih.getTime());
-    const minDate = new Date(Math.min(...timestamps));
-    const maxDate = new Date(Math.max(...timestamps));
+    const minDate = new Date(timestamps.reduce((a, b) => a < b ? a : b));
+    const maxDate = new Date(timestamps.reduce((a, b) => a > b ? a : b));
     const diffDays = (maxDate - minDate) / (1000 * 60 * 60 * 24);
 
     if (diffDays > 90) {
