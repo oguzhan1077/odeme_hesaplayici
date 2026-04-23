@@ -6,8 +6,12 @@ const iaPtfState = {
     rows: [],
     supplierRates: {},  // { supplierName: rate (number, e.g. 2.5 for %2.5) }
     ptfMap: new Map(),  // UTCHourKey -> price
-    results: { detail: [], summary: [] }
+    results: { detail: [], summary: [] },
+    selectedMonth: null // { year, month } — month 1-indexed
 };
+
+const MONTH_NAMES_TR = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+                        'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
 
 const REQUIRED_COLUMNS = [
     'Tarih',
@@ -68,6 +72,82 @@ function toUTCHourKey(date) {
     const d = String(date.getUTCDate()).padStart(2, '0');
     const h = String(date.getUTCHours()).padStart(2, '0');
     return `${y}-${mo}-${d}T${h}`;
+}
+
+// -------- Month Helpers --------
+
+function getUniqueMonths(rows) {
+    const seen = new Set();
+    const months = [];
+    rows.forEach(r => {
+        const y = r.tarih.getFullYear();
+        const m = r.tarih.getMonth() + 1;
+        const key = `${y}-${m}`;
+        if (!seen.has(key)) {
+            seen.add(key);
+            months.push({ year: y, month: m });
+        }
+    });
+    return months.sort((a, b) => a.year !== b.year ? a.year - b.year : a.month - b.month);
+}
+
+function getSuppliersForMonth(rows, year, month) {
+    return [...new Set(
+        rows
+            .filter(r => r.tarih.getFullYear() === year && r.tarih.getMonth() + 1 === month)
+            .map(r => r.satici)
+    )].sort();
+}
+
+function renderMonthSelector(months) {
+    const container = document.getElementById('ia-month-selector');
+    if (!container) return;
+    container.innerHTML = '';
+
+    months.forEach((m, i) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn me-2 mb-2';
+        btn.dataset.year = m.year;
+        btn.dataset.month = m.month;
+        btn.textContent = `${MONTH_NAMES_TR[m.month - 1]} ${m.year}`;
+
+        btn.addEventListener('click', () => {
+            container.querySelectorAll('button').forEach(b => {
+                b.classList.remove('btn-primary');
+                b.classList.add('btn-outline-secondary');
+            });
+            btn.classList.remove('btn-outline-secondary');
+            btn.classList.add('btn-primary');
+            onMonthSelected(m.year, m.month);
+        });
+
+        if (i === 0) {
+            btn.classList.add('btn-primary');
+        } else {
+            btn.classList.add('btn-outline-secondary');
+        }
+
+        container.appendChild(btn);
+    });
+
+    if (months.length > 0) {
+        onMonthSelected(months[0].year, months[0].month);
+    }
+}
+
+function onMonthSelected(year, month) {
+    iaPtfState.selectedMonth = { year, month };
+    hideEl('ia-results-section');
+
+    const suppliers = getSuppliersForMonth(iaPtfState.rows, year, month);
+    suppliers.forEach(s => {
+        if (!(s in iaPtfState.supplierRates)) iaPtfState.supplierRates[s] = 0;
+    });
+
+    renderSupplierRates(suppliers);
+    showEl('ia-suppliers-section');
+    showEl('ia-calculate-section');
 }
 
 // -------- Magic Bytes Check --------
@@ -422,11 +502,13 @@ async function handleIaFileUpload(event) {
     // Reset state
     setError('ia-file-error', null);
     hideEl('ia-file-info');
+    hideEl('ia-month-section');
     hideEl('ia-suppliers-section');
     hideEl('ia-calculate-section');
     hideEl('ia-results-section');
     iaPtfState.rows = [];
     iaPtfState.supplierRates = {};
+    iaPtfState.selectedMonth = null;
 
     if (!file.name.toLowerCase().endsWith('.xlsx')) {
         setError('ia-file-error', 'Sadece .xlsx dosyaları kabul edilir. (.xlsm, .xlsb ve .xls reddedilir)');
@@ -453,20 +535,18 @@ async function handleIaFileUpload(event) {
         const rows = await parseAndValidateExcel(file);
         iaPtfState.rows = rows;
 
-        const uniqueSuppliers = [...new Set(rows.map(r => r.satici))].sort();
-        iaPtfState.supplierRates = Object.fromEntries(uniqueSuppliers.map(s => [s, 0]));
-
-        renderSupplierRates(uniqueSuppliers);
+        const months = getUniqueMonths(rows);
 
         const infoEl = document.getElementById('ia-file-info');
         if (infoEl) {
             const badge = infoEl.querySelector('.badge');
-            if (badge) badge.textContent = `${rows.length.toLocaleString('tr-TR')} satır, ${uniqueSuppliers.length} tedarikçi yüklendi.`;
+            if (badge) badge.textContent = `${rows.length.toLocaleString('tr-TR')} satır, ${months.length} ay yüklendi.`;
             showEl('ia-file-info');
         }
 
-        showEl('ia-suppliers-section');
-        showEl('ia-calculate-section');
+        renderMonthSelector(months);
+        showEl('ia-month-section');
+        // Tedarikçiler ve hesapla butonu onMonthSelected içinde gösterilir
     } catch (errMsg) {
         setError('ia-file-error', errMsg);
         event.target.value = '';
@@ -491,22 +571,40 @@ async function handleIaCalculate() {
         return;
     }
 
-    // Validate rates
-    for (const [supplier, rate] of Object.entries(iaPtfState.supplierRates)) {
+    if (!iaPtfState.selectedMonth) {
+        setError('ia-calc-error', 'Lütfen hesaplanacak ayı seçin.');
+        return;
+    }
+
+    // Seçili aya ait satırları filtrele
+    const { year, month } = iaPtfState.selectedMonth;
+    const filteredRows = iaPtfState.rows.filter(r =>
+        r.tarih.getFullYear() === year && r.tarih.getMonth() + 1 === month
+    );
+
+    if (filteredRows.length === 0) {
+        setError('ia-calc-error', 'Seçilen ay için veri bulunamadı.');
+        return;
+    }
+
+    // Validate rates — sadece bu aydaki tedarikçiler
+    const monthSuppliers = getSuppliersForMonth(iaPtfState.rows, year, month);
+    for (const supplier of monthSuppliers) {
+        const rate = iaPtfState.supplierRates[supplier] ?? 0;
         if (isNaN(rate) || rate < -100 || rate > 100) {
             setError('ia-calc-error', `"${supplier}" için anlaşma oranı -100 ile 100 arasında olmalıdır.`);
             return;
         }
     }
 
-    // Date range — reduce kullanılıyor, spread büyük dizilerde stack overflow yaratır
-    const timestamps = iaPtfState.rows.map(r => r.tarih.getTime());
+    // Date range — seçili ayın min/max tarihi
+    const timestamps = filteredRows.map(r => r.tarih.getTime());
     const minDate = new Date(timestamps.reduce((a, b) => a < b ? a : b));
     const maxDate = new Date(timestamps.reduce((a, b) => a > b ? a : b));
     const diffDays = (maxDate - minDate) / (1000 * 60 * 60 * 24);
 
     if (diffDays > 90) {
-        setError('ia-calc-error', `Excel'deki tarih aralığı 90 günü aşıyor (${Math.round(diffDays)} gün). Lütfen daha kısa bir dönem için dosya yükleyin.`);
+        setError('ia-calc-error', `Seçilen ay 90 günü aşıyor (${Math.round(diffDays)} gün).`);
         return;
     }
 
@@ -536,7 +634,7 @@ async function handleIaCalculate() {
         setLoading(true, 'Hesaplanıyor...');
 
         const { detail, summary, unmatched } = calculateResults(
-            iaPtfState.rows,
+            filteredRows,
             iaPtfState.ptfMap,
             iaPtfState.supplierRates
         );
