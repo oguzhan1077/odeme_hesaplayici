@@ -143,6 +143,7 @@ function renderMonthSelector(months) {
 function onMonthSelected(year, month) {
     iaPtfState.selectedMonth = { year, month };
     hideEl('ia-results-section');
+    clearValidationErrors();
 
     const suppliers = getSuppliersForMonth(iaPtfState.rows, year, month);
     suppliers.forEach(s => {
@@ -281,6 +282,7 @@ function calculateResults(rows, ptfMap, supplierConfig) {
         if (config.pricingType === 'ptf_indexed') {
             const rate = config.agreementRate;
             if (rate === null || rate === undefined || isNaN(rate)) {
+                // Validation should catch this before calculation; defensive fallback
                 detail.push({
                     ...row,
                     status: 'config_error', pricingType: 'ptf_indexed',
@@ -299,6 +301,7 @@ function calculateResults(rows, ptfMap, supplierConfig) {
         } else { // fixed
             const fp = config.fixedPrice;
             if (fp === null || fp === undefined || isNaN(fp)) {
+                // Validation should catch this before calculation; defensive fallback
                 detail.push({
                     ...row,
                     status: 'config_error', pricingType: 'fixed',
@@ -439,6 +442,7 @@ function renderSupplierRates(suppliers) {
 
         const card = document.createElement('div');
         card.className = 'border rounded mb-2 p-2';
+        card.dataset.supplier = supplier;
 
         // -- Checkbox + name --
         const nameRow = document.createElement('div');
@@ -515,6 +519,7 @@ function renderSupplierRates(suppliers) {
         ptfInput.min = '-100';
         ptfInput.max = '100';
         ptfInput.value = Number((cfg.agreementRate * 100).toFixed(4));
+        ptfInput.dataset.inputType = 'ptf_rate';
         ptfInput.setAttribute('aria-label', `${supplier} anlaşma oranı`);
         const ptfSuffix = document.createElement('span');
         ptfSuffix.className = 'input-group-text';
@@ -548,6 +553,7 @@ function renderSupplierRates(suppliers) {
         fixedPriceInput.max = '100000';
         fixedPriceInput.step = '0.01';
         if (cfg.fixedPrice !== null) fixedPriceInput.value = cfg.fixedPrice;
+        fixedPriceInput.dataset.inputType = 'fixed_price';
         fixedPriceInput.setAttribute('aria-label', `${supplier} sabit fiyat TL/MWh`);
         fixedPriceCol.appendChild(fixedPriceInput);
 
@@ -592,11 +598,13 @@ function renderSupplierRates(suppliers) {
         ptfInput.addEventListener('input', () => {
             const val = parseFloat(ptfInput.value);
             iaPtfState.supplierConfig[supplier].agreementRate = isNaN(val) ? 0 : val / 100;
+            ptfInput.classList.remove('is-invalid');
         });
 
         fixedPriceInput.addEventListener('input', () => {
             const val = parseFloat(fixedPriceInput.value);
             iaPtfState.supplierConfig[supplier].fixedPrice = isNaN(val) ? null : val;
+            fixedPriceInput.classList.remove('is-invalid');
         });
     });
 
@@ -861,8 +869,81 @@ async function handleIaFileUpload(event) {
     }
 }
 
+// -------- Validation --------
+
+function validateSupplierConfig(suppliers, supplierConfig) {
+    const errors = [];
+    const enabled = suppliers.filter(s => (supplierConfig[s] ?? defaultSupplierConfig()).enabled);
+
+    if (enabled.length === 0) {
+        errors.push({ supplier: null, inputType: null, message: 'En az bir tedarikçi seçilmelidir.' });
+        return errors;
+    }
+
+    enabled.forEach(s => {
+        const cfg = supplierConfig[s] ?? defaultSupplierConfig();
+        if (cfg.pricingType === 'ptf_indexed') {
+            const r = cfg.agreementRate;
+            if (r === null || r === undefined || isNaN(r) || r < -1 || r > 1) {
+                errors.push({ supplier: s, inputType: 'ptf_rate',
+                    message: `"${s}" için anlaşma oranı −100 ile 100 arasında olmalıdır.` });
+            }
+        } else {
+            const fp = cfg.fixedPrice;
+            if (fp === null || fp === undefined || isNaN(fp)) {
+                errors.push({ supplier: s, inputType: 'fixed_price',
+                    message: `"${s}" için sabit fiyat girilmelidir.` });
+            } else if (fp <= 0 || fp > 100000) {
+                errors.push({ supplier: s, inputType: 'fixed_price',
+                    message: `"${s}" için sabit fiyat 0'dan büyük ve 100.000'den küçük olmalıdır.` });
+            }
+        }
+    });
+
+    return errors;
+}
+
+function showValidationErrors(errors) {
+    const panel = document.getElementById('ia-validation-errors');
+    const list = document.getElementById('ia-validation-error-list');
+    if (!panel || !list) return;
+
+    list.innerHTML = '';
+    errors.forEach(e => {
+        const li = document.createElement('li');
+        li.textContent = e.message;
+        list.appendChild(li);
+    });
+    panel.classList.remove('d-none');
+
+    let firstCard = null;
+    errors.forEach(e => {
+        if (!e.supplier) return;
+        const card = document.querySelector(`[data-supplier="${CSS.escape(e.supplier)}"]`);
+        if (!card) return;
+        card.style.borderLeft = '3px solid var(--bs-danger, #dc3545)';
+        if (e.inputType) {
+            const input = card.querySelector(`[data-input-type="${e.inputType}"]`);
+            if (input) input.classList.add('is-invalid');
+        }
+        if (!firstCard) firstCard = card;
+    });
+
+    if (firstCard) firstCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function clearValidationErrors() {
+    const panel = document.getElementById('ia-validation-errors');
+    if (panel) panel.classList.add('d-none');
+    document.querySelectorAll('#ia-supplier-rates [data-supplier]').forEach(card => {
+        card.style.borderLeft = '';
+        card.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+    });
+}
+
 async function handleIaCalculate() {
     setError('ia-calc-error', null);
+    clearValidationErrors();
 
     const username = (document.getElementById('ia-username')?.value || '').trim();
     const password = document.getElementById('ia-password')?.value || '';
@@ -893,15 +974,12 @@ async function handleIaCalculate() {
         return;
     }
 
-    // Validate rates — sadece bu aydaki tedarikçiler
+    // Validate supplier config — tüm hataları bir arada göster
     const monthSuppliers = getSuppliersForMonth(iaPtfState.rows, year, month);
-    for (const supplier of monthSuppliers) {
-        const cfg = iaPtfState.supplierConfig[supplier] ?? defaultSupplierConfig();
-        const agreementRate = cfg.agreementRate;
-        if (isNaN(agreementRate) || agreementRate < -1 || agreementRate > 1) {
-            setError('ia-calc-error', `"${supplier}" için anlaşma oranı -100 ile 100 arasında olmalıdır.`);
-            return;
-        }
+    const validationErrors = validateSupplierConfig(monthSuppliers, iaPtfState.supplierConfig);
+    if (validationErrors.length > 0) {
+        showValidationErrors(validationErrors);
+        return;
     }
 
     // Date range — seçili ayın min/max tarihi
@@ -974,6 +1052,7 @@ function initIaPtf() {
     document.getElementById('ia-file-input')?.addEventListener('change', handleIaFileUpload);
     document.getElementById('ia-calculate-btn')?.addEventListener('click', handleIaCalculate);
     document.getElementById('ia-download-btn')?.addEventListener('click', downloadIaPtfExcel);
+    document.getElementById('ia-validation-dismiss')?.addEventListener('click', clearValidationErrors);
 }
 
 document.addEventListener('DOMContentLoaded', initIaPtf);

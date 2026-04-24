@@ -911,6 +911,18 @@
                                     <small class="text-muted d-block mb-3">
                                         Her tedarikçi için fiyatlandırma tipini seçin. <strong>PTF Endeksli</strong>: anlaşma oranı girin (0 = PTF, 2 = PTF+%2, −1 = PTF−%1; aralık −100 ile 100). <strong>Sabit Fiyat</strong>: TL/MWh cinsinden sabit birim fiyat girin.
                                     </small>
+                                    <div id="ia-validation-errors" class="d-none mb-3">
+                                        <div class="alert alert-danger mb-0" style="border-radius: 10px;">
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <div>
+                                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                                    <strong>Hesaplama yapılamadı:</strong>
+                                                    <ul class="mb-0 mt-1 ps-3" id="ia-validation-error-list"></ul>
+                                                </div>
+                                                <button type="button" class="btn-close btn-close-white ms-3 flex-shrink-0" id="ia-validation-dismiss" aria-label="Kapat"></button>
+                                            </div>
+                                        </div>
+                                    </div>
                                     <div id="ia-supplier-rates"></div>
                                 </div>
                             </div>
