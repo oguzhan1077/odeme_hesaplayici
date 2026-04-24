@@ -4,14 +4,14 @@
 
 const iaPtfState = {
     rows: [],
-    supplierConfig: {}, // { supplierName: { enabled, pricingType, agreementRate, fixedPrice, fixedCurrency } }
-    ptfMap: new Map(),  // UTCHourKey -> { priceTRY, priceUsd, priceEur }
+    supplierConfig: {}, // { supplierName: { enabled, pricingType, agreementRate, fixedPrice } }
+    ptfMap: new Map(),  // UTCHourKey -> { priceTRY }
     results: { detail: [], summary: [] },
     selectedMonth: null // { year, month } — month 1-indexed
 };
 
 function defaultSupplierConfig() {
-    return { enabled: true, pricingType: 'ptf_indexed', agreementRate: 0, fixedPrice: null, fixedCurrency: null };
+    return { enabled: true, pricingType: 'ptf_indexed', agreementRate: 0, fixedPrice: null };
 }
 
 const MONTH_NAMES_TR = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
@@ -488,7 +488,7 @@ function renderSupplierRates(suppliers) {
         fixedLabelCol.className = 'col-auto';
         const fixedLabel = document.createElement('label');
         fixedLabel.className = 'form-label mb-0 small text-muted';
-        fixedLabel.textContent = 'Birim Fiyat:';
+        fixedLabel.textContent = 'Sabit Fiyat (TL/MWh):';
         fixedLabelCol.appendChild(fixedLabel);
 
         const fixedPriceCol = document.createElement('div');
@@ -501,33 +501,18 @@ function renderSupplierRates(suppliers) {
         fixedPriceInput.max = '100000';
         fixedPriceInput.step = '0.01';
         if (cfg.fixedPrice !== null) fixedPriceInput.value = cfg.fixedPrice;
-        fixedPriceInput.setAttribute('aria-label', `${supplier} sabit fiyat`);
+        fixedPriceInput.setAttribute('aria-label', `${supplier} sabit fiyat TL/MWh`);
         fixedPriceCol.appendChild(fixedPriceInput);
-
-        const fixedCurrencyCol = document.createElement('div');
-        fixedCurrencyCol.className = 'col-auto';
-        const fixedCurrencySelect = document.createElement('select');
-        fixedCurrencySelect.className = 'form-select form-select-sm';
-        fixedCurrencySelect.setAttribute('aria-label', `${supplier} para birimi`);
-        [['TRY', '₺ TRY'], ['USD', '$ USD'], ['EUR', '€ EUR']].forEach(([val, label]) => {
-            const opt = document.createElement('option');
-            opt.value = val;
-            opt.textContent = label;
-            if (val === (cfg.fixedCurrency || 'TRY')) opt.selected = true;
-            fixedCurrencySelect.appendChild(opt);
-        });
-        fixedCurrencyCol.appendChild(fixedCurrencySelect);
 
         fixedGroup.appendChild(fixedLabelCol);
         fixedGroup.appendChild(fixedPriceCol);
-        fixedGroup.appendChild(fixedCurrencyCol);
         controls.appendChild(fixedGroup);
 
         card.appendChild(controls);
         container.appendChild(card);
 
         // Collect all interactive inputs (for bulk disable/enable)
-        const allInputs = [typeSelect, ptfInput, fixedPriceInput, fixedCurrencySelect];
+        const allInputs = [typeSelect, ptfInput, fixedPriceInput];
         rowMeta[supplier] = { checkbox, card, inputs: allInputs };
 
         // Apply initial disabled state
@@ -551,10 +536,6 @@ function renderSupplierRates(suppliers) {
                 ptfGroup.classList.remove('d-none');
                 fixedGroup.classList.add('d-none');
             } else {
-                // Default currency to TRY on first switch to fixed
-                if (iaPtfState.supplierConfig[supplier].fixedCurrency === null) {
-                    iaPtfState.supplierConfig[supplier].fixedCurrency = 'TRY';
-                }
                 ptfGroup.classList.add('d-none');
                 fixedGroup.classList.remove('d-none');
             }
@@ -569,10 +550,6 @@ function renderSupplierRates(suppliers) {
         fixedPriceInput.addEventListener('input', () => {
             const val = parseFloat(fixedPriceInput.value);
             iaPtfState.supplierConfig[supplier].fixedPrice = isNaN(val) ? null : val;
-        });
-
-        fixedCurrencySelect.addEventListener('change', () => {
-            iaPtfState.supplierConfig[supplier].fixedCurrency = fixedCurrencySelect.value;
         });
     });
 
@@ -846,7 +823,7 @@ async function handleIaCalculate() {
             return data.prices;
         });
 
-        iaPtfState.ptfMap = new Map(prices.map(p => [toUTCHourKey(new Date(p.date)), { priceTRY: p.price, priceUsd: p.priceUsd ?? null, priceEur: p.priceEur ?? null }]));
+        iaPtfState.ptfMap = new Map(prices.map(p => [toUTCHourKey(new Date(p.date)), { priceTRY: p.price }]));
 
         setLoading(true, 'Hesaplanıyor...');
 
