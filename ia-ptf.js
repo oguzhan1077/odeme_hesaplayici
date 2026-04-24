@@ -255,7 +255,13 @@ function calculateResults(rows, ptfMap, supplierConfig) {
         const config = supplierConfig[row.satici] ?? defaultSupplierConfig();
 
         if (!config.enabled) {
-            detail.push({ ...row, ptf: null, agreementRate: null, birimFiyat: null, tutar: null, matched: false, excluded: true });
+            detail.push({
+                ...row,
+                status: 'excluded', pricingType: config.pricingType,
+                unitPrice: null, tl: null, agreementRate: null, fixedPrice: null, ptf: null,
+                // backward-compat aliases — removed in tables phase
+                birimFiyat: null, tutar: null, matched: false
+            });
             return;
         }
 
@@ -264,34 +270,84 @@ function calculateResults(rows, ptfMap, supplierConfig) {
 
         if (ptfEntry === undefined) {
             unmatched++;
-            detail.push({ ...row, ptf: null, agreementRate: null, birimFiyat: null, tutar: null, matched: false, excluded: false });
+            detail.push({
+                ...row,
+                status: 'unmatched', pricingType: config.pricingType,
+                unitPrice: null, tl: null, agreementRate: null, fixedPrice: null, ptf: null,
+                birimFiyat: null, tutar: null, matched: false
+            });
             return;
         }
 
         const priceTRY = ptfEntry.priceTRY;
-        const birimFiyat = priceTRY * (1 + config.agreementRate);
-        const tutar = birimFiyat * row.miktar;
-        detail.push({ ...row, ptf: priceTRY, agreementRate: config.agreementRate, birimFiyat, tutar, matched: true, excluded: false });
+
+        if (config.pricingType === 'ptf_indexed') {
+            const rate = config.agreementRate;
+            if (rate === null || rate === undefined || isNaN(rate)) {
+                detail.push({
+                    ...row,
+                    status: 'config_error', pricingType: 'ptf_indexed',
+                    unitPrice: null, tl: null, agreementRate: null, fixedPrice: null, ptf: priceTRY,
+                    birimFiyat: null, tutar: null, matched: false
+                });
+                return;
+            }
+            const unitPrice = priceTRY * (1 + rate);
+            const tl = unitPrice * row.miktar;
+            detail.push({
+                ...row,
+                status: 'ok', pricingType: 'ptf_indexed',
+                unitPrice, tl, agreementRate: rate, fixedPrice: null, ptf: priceTRY,
+                birimFiyat: unitPrice, tutar: tl, matched: true
+            });
+
+        } else { // fixed
+            const fp = config.fixedPrice;
+            if (fp === null || fp === undefined || isNaN(fp)) {
+                detail.push({
+                    ...row,
+                    status: 'config_error', pricingType: 'fixed',
+                    unitPrice: null, tl: null, agreementRate: null, fixedPrice: null, ptf: priceTRY,
+                    birimFiyat: null, tutar: null, matched: false
+                });
+                return;
+            }
+            const unitPrice = fp;
+            const tl = unitPrice * row.miktar;
+            detail.push({
+                ...row,
+                status: 'ok', pricingType: 'fixed',
+                unitPrice, tl, agreementRate: null, fixedPrice: fp, ptf: priceTRY,
+                birimFiyat: unitPrice, tutar: tl, matched: true
+            });
+        }
     });
 
-    // Tedarikçi bazında özet — sadece matched satırlar
+    // Tedarikçi bazında özet — sadece 'ok' satırlar
     const summaryMap = new Map();
-    detail.filter(r => r.matched).forEach(r => {
+    detail.filter(r => r.status === 'ok').forEach(r => {
         if (!summaryMap.has(r.satici)) {
-            summaryMap.set(r.satici, { satici: r.satici, totalMWh: 0, totalTL: 0, weightedPtf: 0, agreementRate: r.agreementRate });
+            summaryMap.set(r.satici, {
+                satici: r.satici, pricingType: r.pricingType,
+                totalMWh: 0, totalTL: 0,
+                weightedUnitPrice: 0, weightedPtf: 0,
+                agreementRate: r.agreementRate, fixedPrice: r.fixedPrice
+            });
         }
         const s = summaryMap.get(r.satici);
-        s.totalMWh += r.miktar;
-        s.totalTL += r.tutar;
-        s.weightedPtf += r.ptf * r.miktar;
+        s.totalMWh       += r.miktar;
+        s.totalTL        += r.tl;
+        s.weightedUnitPrice += r.unitPrice * r.miktar;
+        s.weightedPtf    += r.ptf * r.miktar;
     });
 
     const summary = [...summaryMap.values()].map(s => ({
-        satici: s.satici,
-        totalMWh: s.totalMWh,
-        avgPtf: s.totalMWh > 0 ? s.weightedPtf / s.totalMWh : 0,
-        agreementRate: s.agreementRate,
-        totalTL: s.totalTL
+        satici: s.satici, pricingType: s.pricingType,
+        totalMWh: s.totalMWh, totalTL: s.totalTL,
+        avgUnitPrice: s.totalMWh > 0 ? s.weightedUnitPrice / s.totalMWh : 0,
+        agreementRate: s.agreementRate, fixedPrice: s.fixedPrice,
+        // backward-compat alias — removed in tables phase
+        avgPtf: s.totalMWh > 0 ? s.weightedPtf / s.totalMWh : 0
     }));
 
     return { detail, summary, unmatched };
