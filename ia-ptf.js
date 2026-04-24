@@ -258,9 +258,7 @@ function calculateResults(rows, ptfMap, supplierConfig) {
             detail.push({
                 ...row,
                 status: 'excluded', pricingType: config.pricingType,
-                unitPrice: null, tl: null, agreementRate: null, fixedPrice: null, ptf: null,
-                // backward-compat aliases — removed in tables phase
-                birimFiyat: null, tutar: null, matched: false
+                unitPrice: null, tl: null, agreementRate: null, fixedPrice: null, ptf: null
             });
             return;
         }
@@ -273,8 +271,7 @@ function calculateResults(rows, ptfMap, supplierConfig) {
             detail.push({
                 ...row,
                 status: 'unmatched', pricingType: config.pricingType,
-                unitPrice: null, tl: null, agreementRate: null, fixedPrice: null, ptf: null,
-                birimFiyat: null, tutar: null, matched: false
+                unitPrice: null, tl: null, agreementRate: null, fixedPrice: null, ptf: null
             });
             return;
         }
@@ -287,8 +284,7 @@ function calculateResults(rows, ptfMap, supplierConfig) {
                 detail.push({
                     ...row,
                     status: 'config_error', pricingType: 'ptf_indexed',
-                    unitPrice: null, tl: null, agreementRate: null, fixedPrice: null, ptf: priceTRY,
-                    birimFiyat: null, tutar: null, matched: false
+                    unitPrice: null, tl: null, agreementRate: null, fixedPrice: null, ptf: priceTRY
                 });
                 return;
             }
@@ -297,8 +293,7 @@ function calculateResults(rows, ptfMap, supplierConfig) {
             detail.push({
                 ...row,
                 status: 'ok', pricingType: 'ptf_indexed',
-                unitPrice, tl, agreementRate: rate, fixedPrice: null, ptf: priceTRY,
-                birimFiyat: unitPrice, tutar: tl, matched: true
+                unitPrice, tl, agreementRate: rate, fixedPrice: null, ptf: priceTRY
             });
 
         } else { // fixed
@@ -307,8 +302,7 @@ function calculateResults(rows, ptfMap, supplierConfig) {
                 detail.push({
                     ...row,
                     status: 'config_error', pricingType: 'fixed',
-                    unitPrice: null, tl: null, agreementRate: null, fixedPrice: null, ptf: priceTRY,
-                    birimFiyat: null, tutar: null, matched: false
+                    unitPrice: null, tl: null, agreementRate: null, fixedPrice: null, ptf: priceTRY
                 });
                 return;
             }
@@ -317,8 +311,7 @@ function calculateResults(rows, ptfMap, supplierConfig) {
             detail.push({
                 ...row,
                 status: 'ok', pricingType: 'fixed',
-                unitPrice, tl, agreementRate: null, fixedPrice: fp, ptf: priceTRY,
-                birimFiyat: unitPrice, tutar: tl, matched: true
+                unitPrice, tl, agreementRate: null, fixedPrice: fp, ptf: priceTRY
             });
         }
     });
@@ -345,9 +338,7 @@ function calculateResults(rows, ptfMap, supplierConfig) {
         satici: s.satici, pricingType: s.pricingType,
         totalMWh: s.totalMWh, totalTL: s.totalTL,
         avgUnitPrice: s.totalMWh > 0 ? s.weightedUnitPrice / s.totalMWh : 0,
-        agreementRate: s.agreementRate, fixedPrice: s.fixedPrice,
-        // backward-compat alias — removed in tables phase
-        avgPtf: s.totalMWh > 0 ? s.weightedPtf / s.totalMWh : 0
+        agreementRate: s.agreementRate, fixedPrice: s.fixedPrice
     }));
 
     return { detail, summary, unmatched };
@@ -629,6 +620,27 @@ function renderSupplierRates(suppliers) {
     updateCounter();
 }
 
+const STATUS_LABEL = {
+    ok:           'Hesaplandı',
+    excluded:     'Hariç Tutuldu',
+    unmatched:    'Eşleşmedi',
+    config_error: 'Yapılandırma Hatası'
+};
+
+function fmtDetailPricing(row) {
+    if (row.pricingType === 'ptf_indexed') {
+        if (row.agreementRate !== null) {
+            const sign = row.agreementRate >= 0 ? '+' : '';
+            return `PTF ${sign}${(row.agreementRate * 100).toFixed(2)}`;
+        }
+        return 'PTF Endeksli';
+    }
+    if (row.pricingType === 'fixed') {
+        return row.fixedPrice !== null ? `Sabit ${row.fixedPrice} TL/MWh` : 'Sabit Fiyat';
+    }
+    return '—';
+}
+
 function renderDetailTable(detail) {
     const tbody = document.getElementById('ia-detail-tbody');
     const limitNote = document.getElementById('ia-detail-limit-note');
@@ -640,25 +652,26 @@ function renderDetailTable(detail) {
 
     displayed.forEach(row => {
         const tr = document.createElement('tr');
-        if (!row.matched) tr.style.opacity = '0.6';
+        if (row.status !== 'ok') tr.style.opacity = '0.6';
 
         const tarihStr = row.tarih.toLocaleString('tr-TR', {
             day: '2-digit', month: '2-digit', year: 'numeric',
             hour: '2-digit', minute: '2-digit'
         });
+        const isOk = row.status === 'ok';
 
         [
             tarihStr,
             row.satici,
+            fmtDetailPricing(row),
             fmtMWh(row.miktar),
-            row.matched ? fmtTL(row.ptf) : '—',
-            row.matched ? `%${(row.agreementRate * 100).toFixed(2)}` : '—',
-            row.matched ? fmtTL(row.birimFiyat) : '—',
-            row.matched ? fmtTL(row.tutar) : 'Eşleşmedi'
+            isOk ? fmtTL(row.unitPrice) : '—',
+            isOk ? fmtTL(row.tl)        : '—',
+            STATUS_LABEL[row.status] ?? row.status
         ].forEach((text, i) => {
             const td = document.createElement('td');
             td.textContent = text;
-            if (i >= 2) td.style.fontVariantNumeric = 'tabular-nums';
+            if (i >= 3 && i <= 5) td.style.fontVariantNumeric = 'tabular-nums';
             tr.appendChild(td);
         });
 
@@ -680,24 +693,48 @@ function renderSummaryTable(summary) {
     if (!tbody) return;
     tbody.innerHTML = '';
 
+    let grandTotalMWh = 0, grandTotalTL = 0;
+
     summary.forEach(row => {
         const tr = document.createElement('tr');
 
+        const typeLabel = row.pricingType === 'ptf_indexed' ? 'PTF Endeksli' : 'Sabit Fiyat';
+        const paramStr = row.pricingType === 'ptf_indexed'
+            ? `%${(row.agreementRate * 100).toFixed(2)}`
+            : `${row.fixedPrice} TL/MWh`;
+
         [
             row.satici,
+            typeLabel,
+            paramStr,
             fmtMWh(row.totalMWh),
-            fmtTL(row.avgPtf),
-            `%${(row.agreementRate * 100).toFixed(2)}`,
+            fmtTL(row.avgUnitPrice),
             fmtTL(row.totalTL)
         ].forEach((text, i) => {
             const td = document.createElement('td');
             td.textContent = text;
-            if (i >= 1) td.style.fontVariantNumeric = 'tabular-nums';
+            if (i >= 3) td.style.fontVariantNumeric = 'tabular-nums';
             tr.appendChild(td);
         });
 
         tbody.appendChild(tr);
+        grandTotalMWh += row.totalMWh;
+        grandTotalTL  += row.totalTL;
     });
+
+    if (summary.length > 1) {
+        const trGrand = document.createElement('tr');
+        trGrand.style.fontWeight = 'bold';
+        trGrand.style.borderTop = '2px solid var(--dark-border, #dee2e6)';
+        const grandAvg = grandTotalMWh > 0 ? grandTotalTL / grandTotalMWh : 0;
+        ['TOPLAM', '', '', fmtMWh(grandTotalMWh), fmtTL(grandAvg), fmtTL(grandTotalTL)].forEach((text, i) => {
+            const td = document.createElement('td');
+            td.textContent = text;
+            if (i >= 3) td.style.fontVariantNumeric = 'tabular-nums';
+            trGrand.appendChild(td);
+        });
+        tbody.appendChild(trGrand);
+    }
 }
 
 // -------- Excel Export --------
@@ -717,22 +754,42 @@ function downloadIaPtfExcel() {
     const wb = XLSX.utils.book_new();
 
     const detailData = [
-        ['Tarih', 'Satıcı Organizasyon', 'İA Miktar (MWh)', 'PTF (TL/MWh)', 'Anlaşma %', 'Birim Fiyat (TL/MWh)', 'Tutar (TL)', 'Durum'],
-        ...detail.map(r => [
-            r.tarih.toLocaleString('tr-TR'),
-            sanitizeForExcel(r.satici),
-            r.miktar,
-            r.matched ? r.ptf : null,
-            r.matched ? r.agreementRate * 100 : null,
-            r.matched ? r.birimFiyat : null,
-            r.matched ? r.tutar : null,
-            r.matched ? 'Eşleşti' : 'Eşleşmedi'
-        ])
+        ['Tarih', 'Satıcı Organizasyon', 'Fiyatlandırma', 'İA Miktar (MWh)', 'Birim Fiyat (TL/MWh)', 'Tutar (TL)', 'Durum'],
+        ...detail.map(r => {
+            const isOk = r.status === 'ok';
+            return [
+                r.tarih.toLocaleString('tr-TR'),
+                sanitizeForExcel(r.satici),
+                sanitizeForExcel(fmtDetailPricing(r)),
+                r.miktar,
+                isOk ? r.unitPrice : null,
+                isOk ? r.tl        : null,
+                sanitizeForExcel(STATUS_LABEL[r.status] ?? r.status)
+            ];
+        })
     ];
 
+    const grandTotalMWh = summary.reduce((s, r) => s + r.totalMWh, 0);
+    const grandTotalTL  = summary.reduce((s, r) => s + r.totalTL,  0);
+    const grandAvg      = grandTotalMWh > 0 ? grandTotalTL / grandTotalMWh : 0;
+
     const summaryData = [
-        ['Satıcı Organizasyon', 'Toplam MWh', 'Ağırlıklı Ort. PTF (TL/MWh)', 'Anlaşma %', 'Toplam TL'],
-        ...summary.map(r => [sanitizeForExcel(r.satici), r.totalMWh, r.avgPtf, r.agreementRate * 100, r.totalTL])
+        ['Satıcı Organizasyon', 'Fiyatlandırma Tipi', 'Parametre', 'Toplam MWh', 'Ağırlıklı Ort. Birim Fiyat (TL/MWh)', 'Toplam TL'],
+        ...summary.map(r => {
+            const typeLabel = r.pricingType === 'ptf_indexed' ? 'PTF Endeksli' : 'Sabit Fiyat';
+            const paramStr  = r.pricingType === 'ptf_indexed'
+                ? `%${(r.agreementRate * 100).toFixed(2)}`
+                : `${r.fixedPrice} TL/MWh`;
+            return [
+                sanitizeForExcel(r.satici),
+                sanitizeForExcel(typeLabel),
+                sanitizeForExcel(paramStr),
+                r.totalMWh,
+                r.avgUnitPrice,
+                r.totalTL
+            ];
+        }),
+        ...(summary.length > 1 ? [['TOPLAM', '', '', grandTotalMWh, grandAvg, grandTotalTL]] : [])
     ];
 
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(detailData), 'Detay');
