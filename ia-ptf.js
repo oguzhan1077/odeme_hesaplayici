@@ -4,11 +4,15 @@
 
 const iaPtfState = {
     rows: [],
-    supplierRates: {},  // { supplierName: rate (number, e.g. 2.5 for %2.5) }
-    ptfMap: new Map(),  // UTCHourKey -> price
+    supplierConfig: {}, // { supplierName: { enabled, pricingType, agreementRate, fixedPrice, fixedCurrency } }
+    ptfMap: new Map(),  // UTCHourKey -> { priceTRY, priceUsd, priceEur }
     results: { detail: [], summary: [] },
     selectedMonth: null // { year, month } — month 1-indexed
 };
+
+function defaultSupplierConfig() {
+    return { enabled: true, pricingType: 'ptf_indexed', agreementRate: 0, fixedPrice: null, fixedCurrency: null };
+}
 
 const MONTH_NAMES_TR = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
                         'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
@@ -142,7 +146,7 @@ function onMonthSelected(year, month) {
 
     const suppliers = getSuppliersForMonth(iaPtfState.rows, year, month);
     suppliers.forEach(s => {
-        if (!(s in iaPtfState.supplierRates)) iaPtfState.supplierRates[s] = 0;
+        if (!(s in iaPtfState.supplierConfig)) iaPtfState.supplierConfig[s] = defaultSupplierConfig();
     });
 
     renderSupplierRates(suppliers);
@@ -243,31 +247,38 @@ function parseAndValidateExcel(file) {
 
 // -------- Calculation --------
 
-function calculateResults(rows, ptfMap, supplierRates) {
+function calculateResults(rows, ptfMap, supplierConfig) {
     const detail = [];
     let unmatched = 0;
 
     rows.forEach(row => {
-        const key = toUTCHourKey(row.tarih);
-        const ptf = ptfMap.get(key);
-        const rate = supplierRates[row.satici] ?? 0;
+        const config = supplierConfig[row.satici] ?? defaultSupplierConfig();
 
-        if (ptf === undefined) {
-            unmatched++;
-            detail.push({ ...row, ptf: null, rate: null, birimFiyat: null, tutar: null, matched: false });
+        if (!config.enabled) {
+            detail.push({ ...row, ptf: null, agreementRate: null, birimFiyat: null, tutar: null, matched: false, excluded: true });
             return;
         }
 
-        const birimFiyat = ptf * (1 + rate / 100);
+        const key = toUTCHourKey(row.tarih);
+        const ptfEntry = ptfMap.get(key);
+
+        if (ptfEntry === undefined) {
+            unmatched++;
+            detail.push({ ...row, ptf: null, agreementRate: null, birimFiyat: null, tutar: null, matched: false, excluded: false });
+            return;
+        }
+
+        const priceTRY = ptfEntry.priceTRY;
+        const birimFiyat = priceTRY * (1 + config.agreementRate);
         const tutar = birimFiyat * row.miktar;
-        detail.push({ ...row, ptf, rate, birimFiyat, tutar, matched: true });
+        detail.push({ ...row, ptf: priceTRY, agreementRate: config.agreementRate, birimFiyat, tutar, matched: true, excluded: false });
     });
 
-    // Tedarikçi bazında özet
+    // Tedarikçi bazında özet — sadece matched satırlar
     const summaryMap = new Map();
     detail.filter(r => r.matched).forEach(r => {
         if (!summaryMap.has(r.satici)) {
-            summaryMap.set(r.satici, { satici: r.satici, totalMWh: 0, totalTL: 0, weightedPtf: 0, rate: r.rate });
+            summaryMap.set(r.satici, { satici: r.satici, totalMWh: 0, totalTL: 0, weightedPtf: 0, agreementRate: r.agreementRate });
         }
         const s = summaryMap.get(r.satici);
         s.totalMWh += r.miktar;
@@ -279,7 +290,7 @@ function calculateResults(rows, ptfMap, supplierRates) {
         satici: s.satici,
         totalMWh: s.totalMWh,
         avgPtf: s.totalMWh > 0 ? s.weightedPtf / s.totalMWh : 0,
-        rate: s.rate,
+        agreementRate: s.agreementRate,
         totalTL: s.totalTL
     }));
 
@@ -359,11 +370,12 @@ function renderSupplierRates(suppliers) {
         input.step = '0.01';
         input.min = '-100';
         input.max = '100';
-        input.value = '0';
+        const currentRate = (iaPtfState.supplierConfig[supplier]?.agreementRate ?? 0) * 100;
+        input.value = Number(currentRate.toFixed(4));
         input.setAttribute('aria-label', `${supplier} anlaşma oranı`);
         input.addEventListener('input', () => {
             const val = parseFloat(input.value);
-            iaPtfState.supplierRates[supplier] = isNaN(val) ? 0 : val;
+            iaPtfState.supplierConfig[supplier].agreementRate = isNaN(val) ? 0 : val / 100;
         });
 
         const suffix = document.createElement('span');
@@ -403,7 +415,7 @@ function renderDetailTable(detail) {
             row.satici,
             fmtMWh(row.miktar),
             row.matched ? fmtTL(row.ptf) : '—',
-            row.matched ? `%${Number(row.rate).toFixed(2)}` : '—',
+            row.matched ? `%${(row.agreementRate * 100).toFixed(2)}` : '—',
             row.matched ? fmtTL(row.birimFiyat) : '—',
             row.matched ? fmtTL(row.tutar) : 'Eşleşmedi'
         ].forEach((text, i) => {
@@ -438,7 +450,7 @@ function renderSummaryTable(summary) {
             row.satici,
             fmtMWh(row.totalMWh),
             fmtTL(row.avgPtf),
-            `%${Number(row.rate).toFixed(2)}`,
+            `%${(row.agreementRate * 100).toFixed(2)}`,
             fmtTL(row.totalTL)
         ].forEach((text, i) => {
             const td = document.createElement('td');
@@ -474,7 +486,7 @@ function downloadIaPtfExcel() {
             sanitizeForExcel(r.satici),
             r.miktar,
             r.matched ? r.ptf : null,
-            r.matched ? r.rate : null,
+            r.matched ? r.agreementRate * 100 : null,
             r.matched ? r.birimFiyat : null,
             r.matched ? r.tutar : null,
             r.matched ? 'Eşleşti' : 'Eşleşmedi'
@@ -483,7 +495,7 @@ function downloadIaPtfExcel() {
 
     const summaryData = [
         ['Satıcı Organizasyon', 'Toplam MWh', 'Ağırlıklı Ort. PTF (TL/MWh)', 'Anlaşma %', 'Toplam TL'],
-        ...summary.map(r => [sanitizeForExcel(r.satici), r.totalMWh, r.avgPtf, r.rate, r.totalTL])
+        ...summary.map(r => [sanitizeForExcel(r.satici), r.totalMWh, r.avgPtf, r.agreementRate * 100, r.totalTL])
     ];
 
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(detailData), 'Detay');
@@ -507,7 +519,7 @@ async function handleIaFileUpload(event) {
     hideEl('ia-calculate-section');
     hideEl('ia-results-section');
     iaPtfState.rows = [];
-    iaPtfState.supplierRates = {};
+    iaPtfState.supplierConfig = {};
     iaPtfState.selectedMonth = null;
 
     if (!file.name.toLowerCase().endsWith('.xlsx')) {
@@ -590,8 +602,9 @@ async function handleIaCalculate() {
     // Validate rates — sadece bu aydaki tedarikçiler
     const monthSuppliers = getSuppliersForMonth(iaPtfState.rows, year, month);
     for (const supplier of monthSuppliers) {
-        const rate = iaPtfState.supplierRates[supplier] ?? 0;
-        if (isNaN(rate) || rate < -100 || rate > 100) {
+        const cfg = iaPtfState.supplierConfig[supplier] ?? defaultSupplierConfig();
+        const agreementRate = cfg.agreementRate;
+        if (isNaN(agreementRate) || agreementRate < -1 || agreementRate > 1) {
             setError('ia-calc-error', `"${supplier}" için anlaşma oranı -100 ile 100 arasında olmalıdır.`);
             return;
         }
@@ -629,14 +642,14 @@ async function handleIaCalculate() {
             return data.prices;
         });
 
-        iaPtfState.ptfMap = new Map(prices.map(p => [toUTCHourKey(new Date(p.date)), p.price]));
+        iaPtfState.ptfMap = new Map(prices.map(p => [toUTCHourKey(new Date(p.date)), { priceTRY: p.price, priceUsd: p.priceUsd ?? null, priceEur: p.priceEur ?? null }]));
 
         setLoading(true, 'Hesaplanıyor...');
 
         const { detail, summary, unmatched } = calculateResults(
             filteredRows,
             iaPtfState.ptfMap,
-            iaPtfState.supplierRates
+            iaPtfState.supplierConfig
         );
 
         iaPtfState.results = { detail, summary };
