@@ -346,50 +346,254 @@ function renderSupplierRates(suppliers) {
     if (!container) return;
     container.innerHTML = '';
 
+    if (suppliers.length === 0) return;
+
+    // ---- Header: bulk-select buttons + counter ----
+    const header = document.createElement('div');
+    header.className = 'd-flex align-items-center gap-2 mb-3 flex-wrap';
+
+    const selectAllBtn = document.createElement('button');
+    selectAllBtn.type = 'button';
+    selectAllBtn.className = 'btn btn-outline-secondary btn-sm';
+    selectAllBtn.textContent = 'Tümünü Seç';
+
+    const selectNoneBtn = document.createElement('button');
+    selectNoneBtn.type = 'button';
+    selectNoneBtn.className = 'btn btn-outline-secondary btn-sm';
+    selectNoneBtn.textContent = 'Hiçbirini Seçme';
+
+    const counter = document.createElement('span');
+    counter.className = 'text-muted small ms-auto';
+
+    header.appendChild(selectAllBtn);
+    header.appendChild(selectNoneBtn);
+    header.appendChild(counter);
+    container.appendChild(header);
+
+    // rowMeta keeps DOM refs needed for bulk enable/disable
+    const rowMeta = {};
+
+    function updateCounter() {
+        const sel = suppliers.filter(s => iaPtfState.supplierConfig[s]?.enabled !== false).length;
+        counter.textContent = `${sel} / ${suppliers.length} seçili`;
+    }
+
+    function syncRowEnabled(supplier, enabled) {
+        const meta = rowMeta[supplier];
+        if (!meta) return;
+        meta.checkbox.checked = enabled;
+        meta.card.style.opacity = enabled ? '' : '0.5';
+        meta.inputs.forEach(el => { el.disabled = !enabled; });
+    }
+
+    // ---- Per-supplier cards ----
     suppliers.forEach(supplier => {
-        const row = document.createElement('div');
-        row.className = 'row align-items-center mb-2';
+        const cfg = iaPtfState.supplierConfig[supplier];
 
-        const labelCol = document.createElement('div');
-        labelCol.className = 'col-md-7';
-        const label = document.createElement('span');
-        label.className = 'fw-semibold';
-        label.style.wordBreak = 'break-word';
-        label.textContent = supplier;
-        labelCol.appendChild(label);
+        const card = document.createElement('div');
+        card.className = 'border rounded mb-2 p-2';
 
-        const inputCol = document.createElement('div');
-        inputCol.className = 'col-md-5';
+        // -- Checkbox + name --
+        const nameRow = document.createElement('div');
+        nameRow.className = 'd-flex align-items-center mb-2';
 
-        const inputGroup = document.createElement('div');
-        inputGroup.className = 'input-group input-group-sm';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'form-check-input me-2 flex-shrink-0';
+        checkbox.checked = cfg.enabled;
+        checkbox.setAttribute('aria-label', `${supplier} dahil et`);
 
-        const input = document.createElement('input');
-        input.type = 'number';
-        input.className = 'form-control';
-        input.step = '0.01';
-        input.min = '-100';
-        input.max = '100';
-        const currentRate = (iaPtfState.supplierConfig[supplier]?.agreementRate ?? 0) * 100;
-        input.value = Number(currentRate.toFixed(4));
-        input.setAttribute('aria-label', `${supplier} anlaşma oranı`);
-        input.addEventListener('input', () => {
-            const val = parseFloat(input.value);
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'fw-semibold';
+        nameSpan.style.wordBreak = 'break-word';
+        nameSpan.textContent = supplier;
+
+        nameRow.appendChild(checkbox);
+        nameRow.appendChild(nameSpan);
+        card.appendChild(nameRow);
+
+        // -- Controls block (indented under checkbox) --
+        const controls = document.createElement('div');
+        controls.className = 'ps-4';
+
+        // Pricing type row
+        const typeRow = document.createElement('div');
+        typeRow.className = 'row g-2 align-items-center mb-2';
+
+        const typeLabelCol = document.createElement('div');
+        typeLabelCol.className = 'col-auto';
+        const typeLabel = document.createElement('label');
+        typeLabel.className = 'form-label mb-0 small text-muted';
+        typeLabel.textContent = 'Fiyatlandırma:';
+        typeLabelCol.appendChild(typeLabel);
+
+        const typeSelectCol = document.createElement('div');
+        typeSelectCol.className = 'col-auto';
+        const typeSelect = document.createElement('select');
+        typeSelect.className = 'form-select form-select-sm';
+        typeSelect.setAttribute('aria-label', `${supplier} fiyatlandırma tipi`);
+        [['ptf_indexed', 'PTF Endeksli'], ['fixed', 'Sabit Fiyat']].forEach(([val, label]) => {
+            const opt = document.createElement('option');
+            opt.value = val;
+            opt.textContent = label;
+            if (val === cfg.pricingType) opt.selected = true;
+            typeSelect.appendChild(opt);
+        });
+        typeSelectCol.appendChild(typeSelect);
+        typeRow.appendChild(typeLabelCol);
+        typeRow.appendChild(typeSelectCol);
+        controls.appendChild(typeRow);
+
+        // PTF-indexed sub-inputs
+        const ptfGroup = document.createElement('div');
+        ptfGroup.className = 'row g-2 align-items-center';
+        if (cfg.pricingType !== 'ptf_indexed') ptfGroup.classList.add('d-none');
+
+        const ptfLabelCol = document.createElement('div');
+        ptfLabelCol.className = 'col-auto';
+        const ptfLabel = document.createElement('label');
+        ptfLabel.className = 'form-label mb-0 small text-muted';
+        ptfLabel.textContent = 'Anlaşma Oranı (%):';
+        ptfLabelCol.appendChild(ptfLabel);
+
+        const ptfInputCol = document.createElement('div');
+        ptfInputCol.className = 'col-auto';
+        const ptfInputGroup = document.createElement('div');
+        ptfInputGroup.className = 'input-group input-group-sm';
+        const ptfInput = document.createElement('input');
+        ptfInput.type = 'number';
+        ptfInput.className = 'form-control';
+        ptfInput.style.width = '90px';
+        ptfInput.step = '0.01';
+        ptfInput.min = '-100';
+        ptfInput.max = '100';
+        ptfInput.value = Number((cfg.agreementRate * 100).toFixed(4));
+        ptfInput.setAttribute('aria-label', `${supplier} anlaşma oranı`);
+        const ptfSuffix = document.createElement('span');
+        ptfSuffix.className = 'input-group-text';
+        ptfSuffix.textContent = '%';
+        ptfInputGroup.appendChild(ptfInput);
+        ptfInputGroup.appendChild(ptfSuffix);
+        ptfInputCol.appendChild(ptfInputGroup);
+        ptfGroup.appendChild(ptfLabelCol);
+        ptfGroup.appendChild(ptfInputCol);
+        controls.appendChild(ptfGroup);
+
+        // Fixed-price sub-inputs
+        const fixedGroup = document.createElement('div');
+        fixedGroup.className = 'row g-2 align-items-center';
+        if (cfg.pricingType !== 'fixed') fixedGroup.classList.add('d-none');
+
+        const fixedLabelCol = document.createElement('div');
+        fixedLabelCol.className = 'col-auto';
+        const fixedLabel = document.createElement('label');
+        fixedLabel.className = 'form-label mb-0 small text-muted';
+        fixedLabel.textContent = 'Birim Fiyat:';
+        fixedLabelCol.appendChild(fixedLabel);
+
+        const fixedPriceCol = document.createElement('div');
+        fixedPriceCol.className = 'col-auto';
+        const fixedPriceInput = document.createElement('input');
+        fixedPriceInput.type = 'number';
+        fixedPriceInput.className = 'form-control form-control-sm';
+        fixedPriceInput.style.width = '110px';
+        fixedPriceInput.min = '0';
+        fixedPriceInput.max = '100000';
+        fixedPriceInput.step = '0.01';
+        if (cfg.fixedPrice !== null) fixedPriceInput.value = cfg.fixedPrice;
+        fixedPriceInput.setAttribute('aria-label', `${supplier} sabit fiyat`);
+        fixedPriceCol.appendChild(fixedPriceInput);
+
+        const fixedCurrencyCol = document.createElement('div');
+        fixedCurrencyCol.className = 'col-auto';
+        const fixedCurrencySelect = document.createElement('select');
+        fixedCurrencySelect.className = 'form-select form-select-sm';
+        fixedCurrencySelect.setAttribute('aria-label', `${supplier} para birimi`);
+        [['TRY', '₺ TRY'], ['USD', '$ USD'], ['EUR', '€ EUR']].forEach(([val, label]) => {
+            const opt = document.createElement('option');
+            opt.value = val;
+            opt.textContent = label;
+            if (val === (cfg.fixedCurrency || 'TRY')) opt.selected = true;
+            fixedCurrencySelect.appendChild(opt);
+        });
+        fixedCurrencyCol.appendChild(fixedCurrencySelect);
+
+        fixedGroup.appendChild(fixedLabelCol);
+        fixedGroup.appendChild(fixedPriceCol);
+        fixedGroup.appendChild(fixedCurrencyCol);
+        controls.appendChild(fixedGroup);
+
+        card.appendChild(controls);
+        container.appendChild(card);
+
+        // Collect all interactive inputs (for bulk disable/enable)
+        const allInputs = [typeSelect, ptfInput, fixedPriceInput, fixedCurrencySelect];
+        rowMeta[supplier] = { checkbox, card, inputs: allInputs };
+
+        // Apply initial disabled state
+        if (!cfg.enabled) {
+            card.style.opacity = '0.5';
+            allInputs.forEach(el => { el.disabled = true; });
+        }
+
+        // ---- Event listeners ----
+
+        checkbox.addEventListener('change', () => {
+            iaPtfState.supplierConfig[supplier].enabled = checkbox.checked;
+            syncRowEnabled(supplier, checkbox.checked);
+            updateCounter();
+        });
+
+        typeSelect.addEventListener('change', () => {
+            const type = typeSelect.value;
+            iaPtfState.supplierConfig[supplier].pricingType = type;
+            if (type === 'ptf_indexed') {
+                ptfGroup.classList.remove('d-none');
+                fixedGroup.classList.add('d-none');
+            } else {
+                // Default currency to TRY on first switch to fixed
+                if (iaPtfState.supplierConfig[supplier].fixedCurrency === null) {
+                    iaPtfState.supplierConfig[supplier].fixedCurrency = 'TRY';
+                }
+                ptfGroup.classList.add('d-none');
+                fixedGroup.classList.remove('d-none');
+            }
+            // Values for the hidden mode are preserved in state — no clearing
+        });
+
+        ptfInput.addEventListener('input', () => {
+            const val = parseFloat(ptfInput.value);
             iaPtfState.supplierConfig[supplier].agreementRate = isNaN(val) ? 0 : val / 100;
         });
 
-        const suffix = document.createElement('span');
-        suffix.className = 'input-group-text';
-        suffix.textContent = '%';
+        fixedPriceInput.addEventListener('input', () => {
+            const val = parseFloat(fixedPriceInput.value);
+            iaPtfState.supplierConfig[supplier].fixedPrice = isNaN(val) ? null : val;
+        });
 
-        inputGroup.appendChild(input);
-        inputGroup.appendChild(suffix);
-        inputCol.appendChild(inputGroup);
-
-        row.appendChild(labelCol);
-        row.appendChild(inputCol);
-        container.appendChild(row);
+        fixedCurrencySelect.addEventListener('change', () => {
+            iaPtfState.supplierConfig[supplier].fixedCurrency = fixedCurrencySelect.value;
+        });
     });
+
+    // ---- Bulk-select handlers ----
+    selectAllBtn.addEventListener('click', () => {
+        suppliers.forEach(s => {
+            iaPtfState.supplierConfig[s].enabled = true;
+            syncRowEnabled(s, true);
+        });
+        updateCounter();
+    });
+
+    selectNoneBtn.addEventListener('click', () => {
+        suppliers.forEach(s => {
+            iaPtfState.supplierConfig[s].enabled = false;
+            syncRowEnabled(s, false);
+        });
+        updateCounter();
+    });
+
+    updateCounter();
 }
 
 function renderDetailTable(detail) {
