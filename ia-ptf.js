@@ -404,12 +404,12 @@ function renderSupplierRates(suppliers) {
 
     const selectAllBtn = document.createElement('button');
     selectAllBtn.type = 'button';
-    selectAllBtn.className = 'btn btn-outline-secondary btn-sm';
+    selectAllBtn.className = 'ia-btn-secondary';
     selectAllBtn.textContent = 'Tümünü Seç';
 
     const selectNoneBtn = document.createElement('button');
     selectNoneBtn.type = 'button';
-    selectNoneBtn.className = 'btn btn-outline-secondary btn-sm';
+    selectNoneBtn.className = 'ia-btn-secondary';
     selectNoneBtn.textContent = 'Hiçbirini Seçme';
 
     const counter = document.createElement('span');
@@ -432,7 +432,7 @@ function renderSupplierRates(suppliers) {
         const meta = rowMeta[supplier];
         if (!meta) return;
         meta.checkbox.checked = enabled;
-        meta.card.style.opacity = enabled ? '' : '0.5';
+        meta.card.classList.toggle('is-disabled', !enabled);
         meta.inputs.forEach(el => { el.disabled = !enabled; });
     }
 
@@ -441,7 +441,7 @@ function renderSupplierRates(suppliers) {
         const cfg = iaPtfState.supplierConfig[supplier];
 
         const card = document.createElement('div');
-        card.className = 'border rounded mb-2 p-2';
+        card.className = 'ia-supplier-card';
         card.dataset.supplier = supplier;
 
         // -- Checkbox + name --
@@ -570,7 +570,7 @@ function renderSupplierRates(suppliers) {
 
         // Apply initial disabled state
         if (!cfg.enabled) {
-            card.style.opacity = '0.5';
+            card.classList.add('is-disabled');
             allInputs.forEach(el => { el.disabled = true; });
         }
 
@@ -660,7 +660,7 @@ function renderDetailTable(detail) {
 
     displayed.forEach(row => {
         const tr = document.createElement('tr');
-        if (row.status !== 'ok') tr.style.opacity = '0.6';
+        if (row.status !== 'ok') tr.classList.add('is-dim');
 
         const tarihStr = row.tarih.toLocaleString('tr-TR', {
             day: '2-digit', month: '2-digit', year: 'numeric',
@@ -669,17 +669,17 @@ function renderDetailTable(detail) {
         const isOk = row.status === 'ok';
 
         [
-            tarihStr,
-            row.satici,
-            fmtDetailPricing(row),
-            fmtMWh(row.miktar),
-            isOk ? fmtTL(row.unitPrice) : '—',
-            isOk ? fmtTL(row.tl)        : '—',
-            STATUS_LABEL[row.status] ?? row.status
-        ].forEach((text, i) => {
+            { text: tarihStr },
+            { text: row.satici },
+            { text: fmtDetailPricing(row) },
+            { text: fmtMWh(row.miktar),                             cls: 'num' },
+            { text: isOk ? fmtTL(row.unitPrice) : '—', cls: isOk ? 'num' : 'num dim' },
+            { text: isOk ? fmtTL(row.tl)        : '—', cls: isOk ? 'num' : 'num dim' },
+            { text: STATUS_LABEL[row.status] ?? row.status }
+        ].forEach(({ text, cls }) => {
             const td = document.createElement('td');
             td.textContent = text;
-            if (i >= 3 && i <= 5) td.style.fontVariantNumeric = 'tabular-nums';
+            if (cls) td.className = cls;
             tr.appendChild(td);
         });
 
@@ -698,8 +698,10 @@ function renderDetailTable(detail) {
 
 function renderSummaryTable(summary) {
     const tbody = document.getElementById('ia-summary-tbody');
+    const tfoot = document.getElementById('ia-summary-tfoot');
     if (!tbody) return;
     tbody.innerHTML = '';
+    if (tfoot) tfoot.innerHTML = '';
 
     let grandTotalMWh = 0, grandTotalTL = 0;
 
@@ -712,16 +714,16 @@ function renderSummaryTable(summary) {
             : `${row.fixedPrice} TL/MWh`;
 
         [
-            row.satici,
-            typeLabel,
-            paramStr,
-            fmtMWh(row.totalMWh),
-            fmtTL(row.avgUnitPrice),
-            fmtTL(row.totalTL)
-        ].forEach((text, i) => {
+            { text: row.satici },
+            { text: typeLabel },
+            { text: paramStr },
+            { text: fmtMWh(row.totalMWh),    cls: 'num' },
+            { text: fmtTL(row.avgUnitPrice),  cls: 'num' },
+            { text: fmtTL(row.totalTL),       cls: 'num' }
+        ].forEach(({ text, cls }) => {
             const td = document.createElement('td');
             td.textContent = text;
-            if (i >= 3) td.style.fontVariantNumeric = 'tabular-nums';
+            if (cls) td.className = cls;
             tr.appendChild(td);
         });
 
@@ -730,18 +732,23 @@ function renderSummaryTable(summary) {
         grandTotalTL  += row.totalTL;
     });
 
-    if (summary.length > 1) {
+    if (summary.length > 1 && tfoot) {
         const trGrand = document.createElement('tr');
-        trGrand.style.fontWeight = 'bold';
-        trGrand.style.borderTop = '2px solid var(--dark-border, #dee2e6)';
         const grandAvg = grandTotalMWh > 0 ? grandTotalTL / grandTotalMWh : 0;
-        ['TOPLAM', '', '', fmtMWh(grandTotalMWh), fmtTL(grandAvg), fmtTL(grandTotalTL)].forEach((text, i) => {
+        [
+            { text: 'TOPLAM' },
+            { text: '' },
+            { text: '' },
+            { text: fmtMWh(grandTotalMWh), cls: 'num' },
+            { text: fmtTL(grandAvg),       cls: 'num' },
+            { text: fmtTL(grandTotalTL),   cls: 'num' }
+        ].forEach(({ text, cls }) => {
             const td = document.createElement('td');
             td.textContent = text;
-            if (i >= 3) td.style.fontVariantNumeric = 'tabular-nums';
+            if (cls) td.className = cls;
             trGrand.appendChild(td);
         });
-        tbody.appendChild(trGrand);
+        tfoot.appendChild(trGrand);
     }
 }
 
@@ -921,7 +928,7 @@ function showValidationErrors(errors) {
         if (!e.supplier) return;
         const card = document.querySelector(`[data-supplier="${CSS.escape(e.supplier)}"]`);
         if (!card) return;
-        card.style.borderLeft = '3px solid var(--bs-danger, #dc3545)';
+        card.classList.add('is-invalid');
         if (e.inputType) {
             const input = card.querySelector(`[data-input-type="${e.inputType}"]`);
             if (input) input.classList.add('is-invalid');
@@ -936,7 +943,7 @@ function clearValidationErrors() {
     const panel = document.getElementById('ia-validation-errors');
     if (panel) panel.classList.add('d-none');
     document.querySelectorAll('#ia-supplier-rates [data-supplier]').forEach(card => {
-        card.style.borderLeft = '';
+        card.classList.remove('is-invalid');
         card.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
     });
 }
