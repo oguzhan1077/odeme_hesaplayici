@@ -209,7 +209,7 @@
                         <div class="tab-pane fade" id="interest-pane" role="tabpanel" aria-labelledby="interest-tab">
 
                             <!-- Bilgilendirme -->
-                            <div class="alert alert-info" style="background: linear-gradient(45deg, #17a2b8, #20c997); border: none; color: white;">
+                            <div class="alert alert-info">
                                 <h5><i class="fas fa-info-circle me-2"></i>Faiz Hesaplama Nasıl Çalışır?</h5>
                                 <p class="mb-2">1. Aşağıdan analiz etmek istediğiniz dönemi seçin</p>
                                 <p class="mb-2">2. Gerçek ödeme tarihinizi ve faiz oranınızı girin</p>
@@ -217,8 +217,8 @@
                             </div>
 
                             <!-- Dönem Seçimi (Faiz Hesaplama İçin) -->
-                            <div class="card mb-4" style="background: var(--dark-card); border: 1px solid var(--dark-border);">
-                                <div class="card-header" style="background: linear-gradient(45deg, #fd7e14, #dc3545); color: white; border-radius: 10px 10px 0 0;">
+                            <div class="card mb-4">
+                                <div class="card-header">
                                     <h5 class="mb-0"><i class="fas fa-calendar-check me-2"></i>Dönem Seçimi</h5>
                                 </div>
                                 <div class="card-body">
@@ -275,8 +275,8 @@
                             </div>
 
                             <!-- Faiz Hesaplama Formu -->
-                            <div class="card mb-4" style="background: var(--dark-card); border: 1px solid var(--dark-border);">
-                                <div class="card-header" style="background: linear-gradient(45deg, #20c997, #28a745); color: white; border-radius: 10px 10px 0 0;">
+                            <div class="card mb-4">
+                                <div class="card-header">
                                     <h5 class="mb-0"><i class="fas fa-percentage me-2"></i>Faiz Hesaplama</h5>
                                 </div>
                                 <div class="card-body">
@@ -293,13 +293,13 @@
                                             <label class="form-label fw-bold">
                                                 <i class="fas fa-toggle-on me-2"></i>Faiz Türü
                                             </label>
-                                            <div class="btn-group d-flex" role="group" aria-label="Faiz türü seçimi">
-                                                <input type="radio" class="btn-check" name="interestType" id="annualType" value="annual" checked>
-                                                <label class="btn btn-outline-success" for="annualType">
+                                            <div class="radio-group">
+                                                <input type="radio" name="interestType" id="annualType" value="annual" checked>
+                                                <label for="annualType">
                                                     <i class="fas fa-calendar-year me-1"></i>Yıllık
                                                 </label>
-                                                <input type="radio" class="btn-check" name="interestType" id="monthlyType" value="monthly">
-                                                <label class="btn btn-outline-success" for="monthlyType">
+                                                <input type="radio" name="interestType" id="monthlyType" value="monthly">
+                                                <label for="monthlyType">
                                                     <i class="fas fa-calendar-month me-1"></i>Aylık
                                                 </label>
                                             </div>
@@ -318,7 +318,7 @@
                                     <div class="row">
                                         <div class="col-md-8">
                                             <div id="conversionResult" class="d-none">
-                                                <div class="alert alert-info mb-0" style="background: linear-gradient(45deg, #17a2b8, #6f42c1); border: none; color: white;">
+                                                <div class="alert alert-info mb-0">
                                                     <small>
                                                         <i class="fas fa-exchange-alt me-2"></i>
                                                         <span id="conversionText">Dönüştürme sonucu burada görünecek</span>
@@ -327,7 +327,7 @@
                                             </div>
                                         </div>
                                         <div class="col-md-4">
-                                            <button type="button" class="btn btn-success w-100" onclick="calculateInterest()">
+                                            <button type="button" class="btn btn-primary w-100" onclick="calculateInterest()">
                                                 <i class="fas fa-calculator me-2"></i>Faiz Hesapla
                                             </button>
                                         </div>
@@ -337,14 +337,14 @@
 
                             <!-- Faiz Hesaplama Sonucu -->
                             <div id="interestResult" class="d-none">
-                                <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 40px rgba(102, 126, 234, 0.3);">
+                                <div class="card">
                                     <div class="card-body p-4">
                                         <!-- Ana Sonuçlar -->
                                         <div class="row text-center mb-4">
                                             <div class="col-md-4">
                                                 <div class="result-item">
-                                                    <div class="result-icon">
-                                                        <i class="fas fa-calendar-days" style="font-size: 2.5rem; color: rgba(255,255,255,0.9); margin-bottom: 15px;"></i>
+                                                    <div class="result-icon mb-3">
+                                                        <i class="fas fa-calendar-days" style="font-size: var(--text-xl); color: var(--accent);"></i>
                                                     </div>
                                                     <h6 class="result-label">Ortalama Vade</h6>
                                                     <h2 id="averageDays" class="result-value">0 gün</h2>
@@ -352,8 +352,8 @@
                                             </div>
                                             <div class="col-md-4">
                                                 <div class="result-item">
-                                                    <div class="result-icon">
-                                                        <i class="fas fa-percentage" style="font-size: 2.5rem; color: rgba(255,255,255,0.9); margin-bottom: 15px;"></i>
+                                                    <div class="result-icon mb-3">
+                                                        <i class="fas fa-percentage" style="font-size: var(--text-xl); color: var(--accent);"></i>
                                                     </div>
                                                     <h6 class="result-label">Yıllık Faiz</h6>
                                                     <h2 id="annualRateDisplay" class="result-value">0%</h2>
@@ -361,8 +361,8 @@
                                             </div>
                                             <div class="col-md-4">
                                                 <div class="result-item">
-                                                    <div class="result-icon">
-                                                        <i class="fas fa-chart-line" style="font-size: 2.5rem; color: rgba(255,255,255,0.9); margin-bottom: 15px;"></i>
+                                                    <div class="result-icon mb-3">
+                                                        <i class="fas fa-chart-line" style="font-size: var(--text-xl); color: var(--accent);"></i>
                                                     </div>
                                                     <h6 class="result-label">Aylık Vade Faizi</h6>
                                                     <h2 id="totalInterest" class="result-value">0%</h2>
@@ -372,7 +372,7 @@
 
                                         <!-- Detay Bilgileri -->
                                         <div class="result-details">
-                                            <div class="details-card">
+                                            <div class="details-card border-top mt-3 pt-3">
                                                 <div class="row">
                                                     <div class="col-md-6">
                                                         <div class="detail-item">
@@ -409,7 +409,7 @@
                         <div class="tab-pane fade" id="ia-ptf-pane" role="tabpanel" aria-labelledby="ia-ptf-tab">
 
                             <!-- Loading -->
-                            <div id="ia-loading" class="loading text-center mb-4">
+                            <div id="ia-loading" class="loading d-none text-center mb-4">
                                 <div class="spinner-border" role="status">
                                     <span class="visually-hidden">Yükleniyor...</span>
                                 </div>
