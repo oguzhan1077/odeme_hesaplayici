@@ -221,98 +221,6 @@ body {
 }
 .btn-success:focus { box-shadow: none; }
 
-/* .btn-danger — transitional override until HTML classes are updated (Faz B) */
-.btn-danger {
-  --bs-btn-color:               var(--accent-on);
-  --bs-btn-bg:                  var(--accent);
-  --bs-btn-border-color:        var(--accent);
-  --bs-btn-hover-bg:            var(--accent-hover);
-  --bs-btn-hover-border-color:  var(--accent-hover);
-  background-color: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-on);
-}
-.btn-danger:hover:not(:disabled) {
-  background-color: var(--accent-hover);
-  border-color: var(--accent-hover);
-  color: var(--accent-on);
-  transform: none;
-  box-shadow: none;
-}
-.btn-danger:focus { box-shadow: none; }
-
-/* .btn-ghost */
-.btn-ghost {
-  background-color: transparent;
-  border-color: transparent;
-  color: var(--text-secondary);
-}
-.btn-ghost:hover:not(:disabled) {
-  background-color: var(--bg-subtle);
-  border-color: transparent;
-  color: var(--text-primary);
-}
-
-/* .btn-icon — icon-only square */
-.btn-icon {
-  background-color: transparent;
-  border-color: transparent;
-  color: var(--text-muted);
-  padding: var(--space-2);
-  min-width: 28px;
-  min-height: 28px;
-  border-radius: var(--radius-sm);
-}
-.btn-icon:hover:not(:disabled) {
-  background-color: var(--bg-subtle);
-  color: var(--text-secondary);
-}
-
-/* .btn-danger-action — destructive actions only (delete / reset) */
-.btn-danger-action {
-  --bs-btn-color:               var(--text-on-accent);
-  --bs-btn-bg:                  var(--danger);
-  --bs-btn-border-color:        var(--danger);
-  --bs-btn-hover-bg:            #b91c1c;
-  --bs-btn-hover-border-color:  #b91c1c;
-  background-color: var(--danger);
-  border-color: var(--danger);
-  color: var(--text-on-accent);
-}
-.btn-danger-action:hover:not(:disabled) {
-  background-color: #b91c1c;
-  border-color: #b91c1c;
-}
-
-/* Size variants */
-.btn-sm {
-  padding: var(--space-2) var(--space-3);
-  font-size: var(--text-sm);
-  border-radius: var(--radius-sm);
-}
-.btn-lg {
-  padding: var(--space-4) var(--space-6);
-  font-size: var(--text-lg);
-  border-radius: var(--radius-md);
-}
-
-/* btn-outline-success — used in Faiz sekmesi radio toggle; transitional */
-.btn-outline-success {
-  background-color: var(--bg-card);
-  border-color: var(--border-default);
-  color: var(--text-secondary);
-}
-.btn-outline-success:hover {
-  background-color: var(--bg-subtle);
-  color: var(--text-primary);
-  transform: none;
-  box-shadow: none;
-}
-.btn-check:checked + .btn-outline-success {
-  background-color: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-on);
-}
 
 
 /* ====================================================================
@@ -372,8 +280,7 @@ body {
 }
 
 /* Gradient text reset — replaces old -webkit-background-clip: text trick */
-.stat-number,
-.stats-number {
+.stat-number {
   font-size: var(--text-xl);
   font-weight: var(--font-semibold);
   color: var(--accent);
@@ -467,12 +374,6 @@ body {
   border-radius: var(--radius-md);
   overflow: hidden;
 }
-.table-scroll {
-  max-height: 500px;
-  overflow-y: auto;
-  overflow-x: auto;
-}
-
 /* Numeric column utility */
 .num {
   text-align: right;
@@ -678,39 +579,7 @@ small.text-muted {
    9. TABS
    ==================================================================== */
 
-/* -- nav-pills override (current markup stays until Faz B HTML changes) -- */
-.nav-pills {
-  --bs-nav-pills-link-active-bg:    transparent;
-  --bs-nav-pills-link-active-color: var(--text-primary);
-  border-bottom: 1px solid var(--border-default);
-  gap: 0;
-  background: transparent;
-  border-radius: 0;
-  padding: 0;
-}
-.nav-pills .nav-link {
-  color: var(--text-muted);
-  background-color: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  border-radius: 0;
-  padding: var(--space-3) var(--space-4);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  margin-bottom: -1px;
-  transition: color var(--transition-fast), border-color var(--transition-fast);
-}
-.nav-pills .nav-link:hover {
-  color: var(--text-secondary);
-  background-color: transparent;
-}
-.nav-pills .nav-link.active {
-  color: var(--text-primary);
-  background-color: transparent;
-  border-bottom-color: var(--accent);
-}
-
-/* -- nav-tabs (ready for Faz B HTML migration) -- */
+/* -- nav-tabs -- */
 .nav-tabs {
   --bs-nav-tabs-border-color:             var(--border-default);
   --bs-nav-tabs-link-hover-border-color:  transparent;
@@ -756,7 +625,6 @@ small.text-muted {
   --bs-dropdown-link-color:       var(--text-primary);
   --bs-dropdown-link-hover-color: var(--text-primary);
   --bs-dropdown-link-hover-bg:    var(--bg-hover);
-  --bs-dropdown-divider-bg:       var(--border-subtle);
   background-color: var(--bg-card);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
@@ -778,10 +646,6 @@ small.text-muted {
 .dropdown-item:focus {
   background-color: var(--bg-hover);
   color: var(--text-primary);
-}
-.dropdown-divider {
-  border-color: var(--border-subtle);
-  margin: var(--space-1) 0;
 }
 
 
@@ -806,33 +670,7 @@ small.text-muted {
 
 
 /* ====================================================================
-   12. EMPTY STATE
-   ==================================================================== */
-.empty-state {
-  text-align: center;
-  padding: var(--space-12) var(--space-8);
-}
-.empty-state-icon {
-  font-size: 2rem;
-  color: var(--text-muted);
-  margin-bottom: var(--space-4);
-  display: block;
-}
-.empty-state h3 {
-  font-size: var(--text-lg);
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
-  margin-bottom: var(--space-2);
-}
-.empty-state p {
-  font-size: var(--text-sm);
-  color: var(--text-muted);
-  margin-bottom: var(--space-5);
-}
-
-
-/* ====================================================================
-   13. VALIDATION PANEL
+   12. VALIDATION PANEL
    ==================================================================== */
 .validation-panel {
   background-color: var(--danger-subtle);
@@ -930,44 +768,7 @@ small.text-muted {
 
 
 /* ====================================================================
-   15. MODAL (defined for future use — not yet in HTML)
-   ==================================================================== */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.3);
-  z-index: var(--z-modal);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.modal-dialog {
-  background-color: var(--bg-card);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
-  max-width: 560px;
-  width: 100%;
-  margin: var(--space-4);
-}
-.modal-header {
-  padding: var(--space-4) var(--space-5);
-  border-bottom: 1px solid var(--border-default);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.modal-body   { padding: var(--space-5); }
-.modal-footer {
-  padding: var(--space-4) var(--space-5);
-  border-top: 1px solid var(--border-default);
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-2);
-}
-
-
-/* ====================================================================
-   16. PAGE-LEVEL UTILITIES
+   15. PAGE-LEVEL UTILITIES
    ==================================================================== */
 
 /* Main container — replaces .main-container with gradient from <style> block */
@@ -1019,8 +820,7 @@ small.text-muted {
    ==================================================================== */
 @media (max-width: 768px) {
   .stat-card { padding: var(--space-4); }
-  .stat-number,
-  .stats-number { font-size: var(--text-lg); }
+  .stat-number { font-size: var(--text-lg); }
   .result-card { padding: var(--space-4); }
   .card-body { padding: var(--space-4); }
   .supplier-card {
