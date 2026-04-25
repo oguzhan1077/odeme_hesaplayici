@@ -1,7 +1,7 @@
 /* ============================================================
    DESIGN SYSTEM — EPİAŞ Ödeme Günü Hesaplayıcısı
    Apple HIG + Stripe minimalism — light theme only
-   Load order: Bootstrap → design-system.css → ia-ptf.css
+   Load order: Bootstrap → design-system.css
    ============================================================ */
 
 
@@ -869,18 +869,47 @@ small.text-muted {
 
 
 /* ====================================================================
-   14. SUPPLIER CARD (replaces .ia-supplier-card — Faz D rename)
+   14. SUPPLIER CARD
    ==================================================================== */
 .supplier-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
   background-color: var(--bg-card);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
-  padding: var(--space-4);
+  padding: var(--space-3) var(--space-4);
   margin-bottom: var(--space-2);
   transition: border-color var(--transition-fast);
 }
 .supplier-card.is-disabled { opacity: 0.5; }
 .supplier-card.is-invalid  { border-left: 3px solid var(--danger); }
+
+.supplier-card-main {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1 1 0;
+  min-width: 0;
+}
+.supplier-card-main span {
+  font-size: var(--text-base);
+  font-weight: var(--font-medium);
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.supplier-card-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+.supplier-card-controls .form-select { width: 140px; }
+.supplier-card-controls .form-control { width: 80px; flex: 0 0 80px; }
 
 
 /* ====================================================================
@@ -977,4 +1006,13 @@ small.text-muted {
   .stats-number { font-size: var(--text-lg); }
   .result-card { padding: var(--space-4); }
   .card-body { padding: var(--space-4); }
+  .supplier-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .supplier-card-controls {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  .supplier-card-controls .form-select { width: 100%; }
 }

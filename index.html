@@ -7,7 +7,6 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="design-system.css" rel="stylesheet">
-    <link href="ia-ptf.css" rel="stylesheet">
 </head>
 <body>
     <div class="main-container">
@@ -402,22 +401,19 @@
                             </div>
                         </div>
 
-                        <!-- ============================================================
-                             SEKME 3: İA-PTF Hesaplama — Faz D'de temizlenecek
-                             (ia-ptf.css class'ları korundu, kasıtlı)
-                             ============================================================ -->
+                        <!-- SEKME 3: İA-PTF Hesaplama -->
                         <div class="tab-pane fade" id="ia-ptf-pane" role="tabpanel" aria-labelledby="ia-ptf-tab">
 
                             <!-- Loading -->
-                            <div id="ia-loading" class="loading d-none text-center mb-4">
+                            <div id="ia-loading" class="d-none text-center mb-4">
                                 <div class="spinner-border" role="status">
                                     <span class="visually-hidden">Yükleniyor...</span>
                                 </div>
-                                <p class="mt-2 ia-loading-text">İşleniyor...</p>
+                                <p class="spinner-label">İşleniyor...</p>
                             </div>
 
                             <!-- Adım 1: EPİAŞ Kimlik Bilgileri -->
-                            <div class="card ia-step-card">
+                            <div class="card mb-4">
                                 <div class="card-header">
                                     <h5><i class="fas fa-key me-2"></i>EPİAŞ Kimlik Bilgileri</h5>
                                 </div>
@@ -444,7 +440,7 @@
                             </div>
 
                             <!-- Adım 2: Excel Yükleme -->
-                            <div class="card ia-step-card">
+                            <div class="card mb-4">
                                 <div class="card-header">
                                     <h5><i class="fas fa-file-excel me-2"></i>İkili Anlaşma Excel Dosyası</h5>
                                 </div>
@@ -456,11 +452,11 @@
                                     <small class="text-muted d-block mt-1">Maksimum 10 MB — yalnızca .xlsx kabul edilir.</small>
 
                                     <div id="ia-file-info" class="d-none mt-3">
-                                        <span class="badge"></span>
+                                        <span class="badge badge-info"></span>
                                     </div>
 
                                     <div id="ia-file-error" class="d-none mt-3">
-                                        <div class="ia-alert-danger">
+                                        <div class="alert alert-danger">
                                             <i class="fas fa-exclamation-triangle me-2"></i><span class="ia-error-text" style="white-space: pre-wrap;"></span>
                                         </div>
                                     </div>
@@ -468,7 +464,7 @@
                             </div>
 
                             <!-- Adım 3: Ay Seçimi -->
-                            <div id="ia-month-section" class="d-none card ia-step-card">
+                            <div id="ia-month-section" class="d-none card mb-4">
                                 <div class="card-header">
                                     <h5><i class="fas fa-calendar-alt me-2"></i>Hesaplanacak Ay</h5>
                                 </div>
@@ -479,7 +475,7 @@
                             </div>
 
                             <!-- Adım 4: Tedarikçi Anlaşma Oranları -->
-                            <div id="ia-suppliers-section" class="d-none card ia-step-card">
+                            <div id="ia-suppliers-section" class="d-none card mb-4">
                                 <div class="card-header">
                                     <h5><i class="fas fa-handshake me-2"></i>Tedarikçi Anlaşma Oranları</h5>
                                 </div>
@@ -488,10 +484,10 @@
                                         Her tedarikçi için fiyatlandırma tipini seçin. <strong>PTF Endeksli</strong>: anlaşma oranı girin (0 = PTF, 2 = PTF+%2, −1 = PTF−%1; aralık −100 ile 100). <strong>Sabit Fiyat</strong>: TL/MWh cinsinden sabit birim fiyat girin.
                                     </small>
                                     <div id="ia-validation-errors" class="d-none">
-                                        <div class="ia-validation-panel">
-                                            <div class="ia-validation-title">
+                                        <div class="validation-panel">
+                                            <div class="validation-panel-title">
                                                 <span><i class="fas fa-exclamation-triangle me-2"></i>Hesaplama yapılamadı</span>
-                                                <button type="button" class="ia-validation-dismiss" id="ia-validation-dismiss" aria-label="Kapat">✕</button>
+                                                <button type="button" class="dismiss" id="ia-validation-dismiss" aria-label="Kapat">✕</button>
                                             </div>
                                             <ul id="ia-validation-error-list"></ul>
                                         </div>
@@ -503,11 +499,11 @@
                             <!-- Hesapla Butonu -->
                             <div id="ia-calculate-section" class="d-none mb-4">
                                 <div id="ia-calc-error" class="d-none mb-3">
-                                    <div class="ia-alert-danger">
+                                    <div class="alert alert-danger">
                                         <i class="fas fa-exclamation-triangle me-2"></i><span class="ia-error-text"></span>
                                     </div>
                                 </div>
-                                <button id="ia-calculate-btn" type="button" class="ia-btn-primary">
+                                <button id="ia-calculate-btn" type="button" class="btn btn-primary w-100">
                                     <i class="fas fa-bolt"></i>PTF Çek ve Hesapla
                                 </button>
                             </div>
@@ -516,57 +512,34 @@
                             <div id="ia-results-section" class="d-none">
 
                                 <div id="ia-unmatched-warning" class="d-none mb-3">
-                                    <div class="ia-alert-warning">
+                                    <div class="alert alert-warning">
                                         <i class="fas fa-exclamation-circle me-2"></i><span class="ia-warn-text"></span>
                                     </div>
                                 </div>
 
                                 <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <h4 class="ia-section-title">Sonuçlar</h4>
-                                    <button id="ia-download-btn" type="button" class="ia-btn-secondary">
+                                    <h4>Sonuçlar</h4>
+                                    <button id="ia-download-btn" type="button" class="btn btn-secondary">
                                         <i class="fas fa-file-excel"></i>Excel İndir
                                     </button>
                                 </div>
 
                                 <!-- Özet Tablosu -->
                                 <h5 class="mb-2">Tedarikçi Özeti</h5>
-                                <div class="ia-table-wrap mb-4">
-                                    <table class="ia-table">
+                                <div class="table-wrap mb-4">
+                                    <table class="table">
                                         <thead>
                                             <tr>
                                                 <th>Satıcı Organizasyon</th>
-                                                <th>Fiyatlandırma Tipi</th>
                                                 <th>Parametre</th>
                                                 <th class="num">Toplam MWh</th>
-                                                <th class="num">Ağırlıklı Ort. Birim Fiyat</th>
+                                                <th class="num">Birim Fiyat</th>
                                                 <th class="num">Toplam TL</th>
                                             </tr>
                                         </thead>
                                         <tbody id="ia-summary-tbody"></tbody>
                                         <tfoot id="ia-summary-tfoot"></tfoot>
                                     </table>
-                                </div>
-
-                                <!-- Detay Tablosu -->
-                                <h5 class="mb-2">Satır Detayı</h5>
-                                <small id="ia-detail-limit-note" class="d-none text-muted d-block mb-2"></small>
-                                <div class="ia-table-wrap">
-                                    <div class="ia-table-scroll">
-                                        <table class="ia-table">
-                                            <thead>
-                                                <tr>
-                                                    <th>Tarih</th>
-                                                    <th>Satıcı</th>
-                                                    <th>Fiyatlandırma</th>
-                                                    <th class="num">Miktar (MWh)</th>
-                                                    <th class="num">Birim Fiyat (TL/MWh)</th>
-                                                    <th class="num">Tutar (TL)</th>
-                                                    <th>Durum</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody id="ia-detail-tbody"></tbody>
-                                        </table>
-                                    </div>
                                 </div>
 
                             </div>

@@ -27,8 +27,6 @@ const REQUIRED_COLUMNS = [
     'İA Miktar (MWh)'
 ];
 
-const DETAIL_DISPLAY_LIMIT = 1000;
-
 // -------- Format Helpers --------
 
 function fmtTL(n) {
@@ -36,7 +34,7 @@ function fmtTL(n) {
 }
 
 function fmtMWh(n) {
-    return new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 4, maximumFractionDigits: 4 }).format(n);
+    return new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 }
 
 // -------- Date Helpers --------
@@ -385,7 +383,7 @@ function setLoading(show, message = 'İşleniyor...') {
     const el = document.getElementById('ia-loading');
     if (!el) return;
     el.classList.toggle('d-none', !show);
-    const textEl = el.querySelector('.ia-loading-text');
+    const textEl = el.querySelector('.spinner-label');
     if (textEl) textEl.textContent = message;
 }
 
@@ -395,7 +393,6 @@ function renderSupplierRates(suppliers) {
     const container = document.getElementById('ia-supplier-rates');
     if (!container) return;
     container.innerHTML = '';
-
     if (suppliers.length === 0) return;
 
     // ---- Header: bulk-select buttons + counter ----
@@ -404,12 +401,12 @@ function renderSupplierRates(suppliers) {
 
     const selectAllBtn = document.createElement('button');
     selectAllBtn.type = 'button';
-    selectAllBtn.className = 'ia-btn-secondary';
+    selectAllBtn.className = 'btn btn-secondary';
     selectAllBtn.textContent = 'Tümünü Seç';
 
     const selectNoneBtn = document.createElement('button');
     selectNoneBtn.type = 'button';
-    selectNoneBtn.className = 'ia-btn-secondary';
+    selectNoneBtn.className = 'btn btn-secondary';
     selectNoneBtn.textContent = 'Hiçbirini Seçme';
 
     const counter = document.createElement('span');
@@ -420,7 +417,6 @@ function renderSupplierRates(suppliers) {
     header.appendChild(counter);
     container.appendChild(header);
 
-    // rowMeta keeps DOM refs needed for bulk enable/disable
     const rowMeta = {};
 
     function updateCounter() {
@@ -436,50 +432,35 @@ function renderSupplierRates(suppliers) {
         meta.inputs.forEach(el => { el.disabled = !enabled; });
     }
 
-    // ---- Per-supplier cards ----
+    // ---- Per-supplier cards (tek satır layout) ----
     suppliers.forEach(supplier => {
         const cfg = iaPtfState.supplierConfig[supplier];
 
         const card = document.createElement('div');
-        card.className = 'ia-supplier-card';
+        card.className = 'supplier-card';
         card.dataset.supplier = supplier;
 
-        // -- Checkbox + name --
-        const nameRow = document.createElement('div');
-        nameRow.className = 'd-flex align-items-center mb-2';
+        // Sol: checkbox + tedarikçi adı
+        const mainDiv = document.createElement('div');
+        mainDiv.className = 'supplier-card-main';
 
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
-        checkbox.className = 'form-check-input me-2 flex-shrink-0';
+        checkbox.className = 'form-check-input flex-shrink-0';
         checkbox.checked = cfg.enabled;
         checkbox.setAttribute('aria-label', `${supplier} dahil et`);
 
         const nameSpan = document.createElement('span');
-        nameSpan.className = 'fw-semibold';
-        nameSpan.style.wordBreak = 'break-word';
         nameSpan.textContent = supplier;
 
-        nameRow.appendChild(checkbox);
-        nameRow.appendChild(nameSpan);
-        card.appendChild(nameRow);
+        mainDiv.appendChild(checkbox);
+        mainDiv.appendChild(nameSpan);
+        card.appendChild(mainDiv);
 
-        // -- Controls block (indented under checkbox) --
-        const controls = document.createElement('div');
-        controls.className = 'ps-4';
+        // Sağ: fiyatlandırma tipi + değer inputu
+        const controlsDiv = document.createElement('div');
+        controlsDiv.className = 'supplier-card-controls';
 
-        // Pricing type row
-        const typeRow = document.createElement('div');
-        typeRow.className = 'row g-2 align-items-center mb-2';
-
-        const typeLabelCol = document.createElement('div');
-        typeLabelCol.className = 'col-auto';
-        const typeLabel = document.createElement('label');
-        typeLabel.className = 'form-label mb-0 small text-muted';
-        typeLabel.textContent = 'Fiyatlandırma:';
-        typeLabelCol.appendChild(typeLabel);
-
-        const typeSelectCol = document.createElement('div');
-        typeSelectCol.className = 'col-auto';
         const typeSelect = document.createElement('select');
         typeSelect.className = 'form-select form-select-sm';
         typeSelect.setAttribute('aria-label', `${supplier} fiyatlandırma tipi`);
@@ -490,92 +471,56 @@ function renderSupplierRates(suppliers) {
             if (val === cfg.pricingType) opt.selected = true;
             typeSelect.appendChild(opt);
         });
-        typeSelectCol.appendChild(typeSelect);
-        typeRow.appendChild(typeLabelCol);
-        typeRow.appendChild(typeSelectCol);
-        controls.appendChild(typeRow);
+        controlsDiv.appendChild(typeSelect);
 
-        // PTF-indexed sub-inputs
+        // PTF-indexed input grubu
         const ptfGroup = document.createElement('div');
-        ptfGroup.className = 'row g-2 align-items-center';
+        ptfGroup.className = 'input-group input-group-sm';
         if (cfg.pricingType !== 'ptf_indexed') ptfGroup.classList.add('d-none');
 
-        const ptfLabelCol = document.createElement('div');
-        ptfLabelCol.className = 'col-auto';
-        const ptfLabel = document.createElement('label');
-        ptfLabel.className = 'form-label mb-0 small text-muted';
-        ptfLabel.textContent = 'Anlaşma Oranı (%):';
-        ptfLabelCol.appendChild(ptfLabel);
-
-        const ptfInputCol = document.createElement('div');
-        ptfInputCol.className = 'col-auto';
-        const ptfInputGroup = document.createElement('div');
-        ptfInputGroup.className = 'input-group input-group-sm';
         const ptfInput = document.createElement('input');
         ptfInput.type = 'number';
         ptfInput.className = 'form-control';
-        ptfInput.style.width = '90px';
         ptfInput.step = '0.01';
         ptfInput.min = '-100';
         ptfInput.max = '100';
         ptfInput.value = Number((cfg.agreementRate * 100).toFixed(4));
         ptfInput.dataset.inputType = 'ptf_rate';
         ptfInput.setAttribute('aria-label', `${supplier} anlaşma oranı`);
+
         const ptfSuffix = document.createElement('span');
         ptfSuffix.className = 'input-group-text';
         ptfSuffix.textContent = '%';
-        ptfInputGroup.appendChild(ptfInput);
-        ptfInputGroup.appendChild(ptfSuffix);
-        ptfInputCol.appendChild(ptfInputGroup);
-        ptfGroup.appendChild(ptfLabelCol);
-        ptfGroup.appendChild(ptfInputCol);
-        controls.appendChild(ptfGroup);
 
-        // Fixed-price sub-inputs
-        const fixedGroup = document.createElement('div');
-        fixedGroup.className = 'row g-2 align-items-center';
-        if (cfg.pricingType !== 'fixed') fixedGroup.classList.add('d-none');
+        ptfGroup.appendChild(ptfInput);
+        ptfGroup.appendChild(ptfSuffix);
+        controlsDiv.appendChild(ptfGroup);
 
-        const fixedLabelCol = document.createElement('div');
-        fixedLabelCol.className = 'col-auto';
-        const fixedLabel = document.createElement('label');
-        fixedLabel.className = 'form-label mb-0 small text-muted';
-        fixedLabel.textContent = 'Sabit Fiyat (TL/MWh):';
-        fixedLabelCol.appendChild(fixedLabel);
-
-        const fixedPriceCol = document.createElement('div');
-        fixedPriceCol.className = 'col-auto';
+        // Sabit fiyat inputu
         const fixedPriceInput = document.createElement('input');
         fixedPriceInput.type = 'number';
         fixedPriceInput.className = 'form-control form-control-sm';
-        fixedPriceInput.style.width = '110px';
+        if (cfg.pricingType !== 'fixed') fixedPriceInput.classList.add('d-none');
         fixedPriceInput.min = '0';
         fixedPriceInput.max = '100000';
         fixedPriceInput.step = '0.01';
         if (cfg.fixedPrice !== null) fixedPriceInput.value = cfg.fixedPrice;
         fixedPriceInput.dataset.inputType = 'fixed_price';
         fixedPriceInput.setAttribute('aria-label', `${supplier} sabit fiyat TL/MWh`);
-        fixedPriceCol.appendChild(fixedPriceInput);
+        controlsDiv.appendChild(fixedPriceInput);
 
-        fixedGroup.appendChild(fixedLabelCol);
-        fixedGroup.appendChild(fixedPriceCol);
-        controls.appendChild(fixedGroup);
-
-        card.appendChild(controls);
+        card.appendChild(controlsDiv);
         container.appendChild(card);
 
-        // Collect all interactive inputs (for bulk disable/enable)
         const allInputs = [typeSelect, ptfInput, fixedPriceInput];
         rowMeta[supplier] = { checkbox, card, inputs: allInputs };
 
-        // Apply initial disabled state
         if (!cfg.enabled) {
             card.classList.add('is-disabled');
             allInputs.forEach(el => { el.disabled = true; });
         }
 
-        // ---- Event listeners ----
-
+        // Event listeners
         checkbox.addEventListener('change', () => {
             iaPtfState.supplierConfig[supplier].enabled = checkbox.checked;
             syncRowEnabled(supplier, checkbox.checked);
@@ -587,12 +532,11 @@ function renderSupplierRates(suppliers) {
             iaPtfState.supplierConfig[supplier].pricingType = type;
             if (type === 'ptf_indexed') {
                 ptfGroup.classList.remove('d-none');
-                fixedGroup.classList.add('d-none');
+                fixedPriceInput.classList.add('d-none');
             } else {
                 ptfGroup.classList.add('d-none');
-                fixedGroup.classList.remove('d-none');
+                fixedPriceInput.classList.remove('d-none');
             }
-            // Values for the hidden mode are preserved in state — no clearing
         });
 
         ptfInput.addEventListener('input', () => {
@@ -610,18 +554,12 @@ function renderSupplierRates(suppliers) {
 
     // ---- Bulk-select handlers ----
     selectAllBtn.addEventListener('click', () => {
-        suppliers.forEach(s => {
-            iaPtfState.supplierConfig[s].enabled = true;
-            syncRowEnabled(s, true);
-        });
+        suppliers.forEach(s => { iaPtfState.supplierConfig[s].enabled = true; syncRowEnabled(s, true); });
         updateCounter();
     });
 
     selectNoneBtn.addEventListener('click', () => {
-        suppliers.forEach(s => {
-            iaPtfState.supplierConfig[s].enabled = false;
-            syncRowEnabled(s, false);
-        });
+        suppliers.forEach(s => { iaPtfState.supplierConfig[s].enabled = false; syncRowEnabled(s, false); });
         updateCounter();
     });
 
@@ -649,53 +587,6 @@ function fmtDetailPricing(row) {
     return '—';
 }
 
-function renderDetailTable(detail) {
-    const tbody = document.getElementById('ia-detail-tbody');
-    const limitNote = document.getElementById('ia-detail-limit-note');
-    if (!tbody) return;
-    tbody.innerHTML = '';
-
-    const displayed = detail.slice(0, DETAIL_DISPLAY_LIMIT);
-    const truncated = detail.length > DETAIL_DISPLAY_LIMIT;
-
-    displayed.forEach(row => {
-        const tr = document.createElement('tr');
-        if (row.status !== 'ok') tr.classList.add('is-dim');
-
-        const tarihStr = row.tarih.toLocaleString('tr-TR', {
-            day: '2-digit', month: '2-digit', year: 'numeric',
-            hour: '2-digit', minute: '2-digit'
-        });
-        const isOk = row.status === 'ok';
-
-        [
-            { text: tarihStr },
-            { text: row.satici },
-            { text: fmtDetailPricing(row) },
-            { text: fmtMWh(row.miktar),                             cls: 'num' },
-            { text: isOk ? fmtTL(row.unitPrice) : '—', cls: isOk ? 'num' : 'num dim' },
-            { text: isOk ? fmtTL(row.tl)        : '—', cls: isOk ? 'num' : 'num dim' },
-            { text: STATUS_LABEL[row.status] ?? row.status }
-        ].forEach(({ text, cls }) => {
-            const td = document.createElement('td');
-            td.textContent = text;
-            if (cls) td.className = cls;
-            tr.appendChild(td);
-        });
-
-        tbody.appendChild(tr);
-    });
-
-    if (limitNote) {
-        if (truncated) {
-            limitNote.textContent = `İlk ${DETAIL_DISPLAY_LIMIT} satır gösteriliyor (toplam ${detail.length}). Tamamı Excel'e aktarılır.`;
-            limitNote.classList.remove('d-none');
-        } else {
-            limitNote.classList.add('d-none');
-        }
-    }
-}
-
 function renderSummaryTable(summary) {
     const tbody = document.getElementById('ia-summary-tbody');
     const tfoot = document.getElementById('ia-summary-tfoot');
@@ -708,18 +599,16 @@ function renderSummaryTable(summary) {
     summary.forEach(row => {
         const tr = document.createElement('tr');
 
-        const typeLabel = row.pricingType === 'ptf_indexed' ? 'PTF Endeksli' : 'Sabit Fiyat';
         const paramStr = row.pricingType === 'ptf_indexed'
             ? `%${(row.agreementRate * 100).toFixed(2)}`
             : `${row.fixedPrice} TL/MWh`;
 
         [
             { text: row.satici },
-            { text: typeLabel },
             { text: paramStr },
-            { text: fmtMWh(row.totalMWh),    cls: 'num' },
-            { text: fmtTL(row.avgUnitPrice),  cls: 'num' },
-            { text: fmtTL(row.totalTL),       cls: 'num' }
+            { text: fmtMWh(row.totalMWh),   cls: 'num' },
+            { text: fmtTL(row.avgUnitPrice), cls: 'num' },
+            { text: fmtTL(row.totalTL),      cls: 'num' }
         ].forEach(({ text, cls }) => {
             const td = document.createElement('td');
             td.textContent = text;
@@ -734,13 +623,11 @@ function renderSummaryTable(summary) {
 
     if (summary.length > 1 && tfoot) {
         const trGrand = document.createElement('tr');
-        const grandAvg = grandTotalMWh > 0 ? grandTotalTL / grandTotalMWh : 0;
         [
             { text: 'TOPLAM' },
             { text: '' },
-            { text: '' },
             { text: fmtMWh(grandTotalMWh), cls: 'num' },
-            { text: fmtTL(grandAvg),       cls: 'num' },
+            { text: '—',                   cls: 'num dim' },
             { text: fmtTL(grandTotalTL),   cls: 'num' }
         ].forEach(({ text, cls }) => {
             const td = document.createElement('td');
@@ -1034,7 +921,6 @@ async function handleIaCalculate() {
         iaPtfState.results = { detail, summary };
 
         renderSummaryTable(summary);
-        renderDetailTable(detail);
         showEl('ia-results-section');
 
         if (unmatched > 0) {
