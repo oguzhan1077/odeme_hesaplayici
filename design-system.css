@@ -921,7 +921,55 @@ small.text-muted {
 
 
 /* ====================================================================
-   16. RESPONSIVE
+   16. PAGE-LEVEL UTILITIES
+   ==================================================================== */
+
+/* Main container — replaces .main-container with gradient from <style> block */
+.main-container {
+  min-height: 100vh;
+  background-color: var(--bg-page);
+  padding: var(--space-5) 0;
+}
+
+/* Page header title */
+.main-container .display-4 {
+  color: var(--text-primary);
+  font-size: var(--text-3xl);
+  font-weight: var(--font-semibold);
+}
+.main-container .lead {
+  color: var(--text-muted);
+  font-size: var(--text-md);
+}
+
+/* Loading spinner visibility — toggled by JS via .show class */
+.loading {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--transition-fast), visibility var(--transition-fast);
+}
+.loading.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Stats grid — 4-column KPI row */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+/* Date cell — used in JS-injected table rows */
+.date-cell {
+  font-weight: var(--font-medium);
+  font-size: var(--text-base);
+}
+
+
+/* ====================================================================
+   17. RESPONSIVE
    ==================================================================== */
 @media (max-width: 768px) {
   .stat-card { padding: var(--space-4); }

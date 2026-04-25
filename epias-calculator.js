@@ -1,3 +1,11 @@
+// Renk paleti — design-system.css token'larıyla senkron tutulmalı
+// accent   #007aff → [0, 122, 255]
+// success  #16a34a → [22, 163, 74]
+// warning  #ca8a04 → [202, 138, 4]
+// danger   #dc2626 → [220, 38, 38]
+// bg-subtle #f3f4f6 → [243, 244, 246]
+// text-primary #111827 → [17, 24, 39]
+
 // Türkiye resmi tatilleri ve bayram arifesi günleri (2025-2028)
 const turkeyHolidays = {
     // 2025 yılı
@@ -248,13 +256,13 @@ function displayPaymentTable(paymentData) {
         
         if (isHoliday(row.tradeDate)) {
             detailedStatus = `Tatil`;
-            statusClass = 'badge-holiday';
+            statusClass = 'badge-danger';
         } else if (isWeekend(row.tradeDate)) {
             detailedStatus = `Hafta Sonu`;
-            statusClass = 'badge-weekend';
+            statusClass = 'badge';
         } else {
             detailedStatus = `İş Günü`;
-            statusClass = 'badge-business';
+            statusClass = 'badge-success';
         }
         
         tr.innerHTML = `
@@ -271,7 +279,7 @@ function displayPaymentTable(paymentData) {
                 <small class="text-muted">${paymentDayName}</small>
             </td>
             <td class="text-center">
-                <span class="badge status-modern ${statusClass}" title="${detailedStatus}">
+                <span class="badge ${statusClass}" title="${detailedStatus}">
                     ${detailedStatus}
                 </span>
             </td>
@@ -498,14 +506,14 @@ function downloadPDF() {
             font: 'helvetica' // Standart font kullan
         },
         headStyles: {
-            fillColor: [102, 126, 234],
+            fillColor: [0, 122, 255],
             textColor: 255,
             fontStyle: 'bold',
             fontSize: 9,
             font: 'helvetica'
         },
         alternateRowStyles: {
-            fillColor: [245, 245, 245]
+            fillColor: [243, 244, 246]
         },
         columnStyles: {
             0: { cellWidth: 40 },
