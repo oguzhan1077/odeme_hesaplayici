@@ -507,6 +507,8 @@ body {
   outline: none;
 }
 .form-control::placeholder { color: var(--text-muted); }
+/* Restore Bootstrap's right-padding for the dropdown arrow icon */
+.form-select { padding-right: 2.25rem; }
 
 .form-control.is-invalid,
 .form-select.is-invalid {
@@ -907,9 +909,24 @@ small.text-muted {
   align-items: center;
   gap: var(--space-2);
   flex-shrink: 0;
+  width: 300px;
 }
-.supplier-card-controls .form-select { width: 140px; }
-.supplier-card-controls .form-control { width: 80px; flex: 0 0 80px; }
+/* Select: 160px — "PTF Endeksli" + dropdown arrow clearance */
+.supplier-card-controls .form-select {
+  flex: 0 0 160px;
+  width: 160px;
+  min-width: 0;
+}
+/* Value group: PTF input-group ve Sabit price input aynı genişlikte
+   kalmalı ki kart sağ kenarları hizalı olsun (160 + 8gap + 132 = 300) */
+.supplier-card-controls .input-group {
+  flex: 0 0 132px;
+  width: 132px;
+}
+.supplier-card-controls > .form-control {
+  flex: 0 0 132px;
+  width: 132px;
+}
 
 
 /* ====================================================================
@@ -1014,5 +1031,7 @@ small.text-muted {
     width: 100%;
     flex-wrap: wrap;
   }
-  .supplier-card-controls .form-select { width: 100%; }
+  .supplier-card-controls .form-select { flex: 1 1 100%; width: 100%; }
+  .supplier-card-controls .input-group  { flex: 0 0 auto; width: auto; }
+  .supplier-card-controls > .form-control { flex: 0 0 auto; width: auto; }
 }
