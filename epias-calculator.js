@@ -27,6 +27,7 @@ const turkeyHolidays = {
     // Bayram arifesi günleri (2025)
     '2025-03-29': 'Ramazan Bayramı Arifesi',
     '2025-06-05': 'Kurban Bayramı Arifesi',
+    '2025-10-28': 'Cumhuriyet Bayramı Arifesi',
     
     // 2026 yılı
     '2026-01-01': 'Yılbaşı',
@@ -47,6 +48,7 @@ const turkeyHolidays = {
     // Bayram arifesi günleri (2026)
     '2026-03-19': 'Ramazan Bayramı Arifesi',
     '2026-05-26': 'Kurban Bayramı Arifesi',
+    '2026-10-28': 'Cumhuriyet Bayramı Arifesi',
     
     // 2027 yılı
     '2027-01-01': 'Yılbaşı',
